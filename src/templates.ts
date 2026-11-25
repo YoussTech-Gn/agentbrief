@@ -9,6 +9,12 @@ export interface TemplateContext {
   commands: string[];
   paths: string[];
   profile: "native" | "lean";
+  projectName?: string;
+  projectDescription?: string;
+  testRunners?: string[];
+  monorepo?: boolean;
+  hasDocker?: boolean;
+  hasCi?: boolean;
 }
 
 export function globalReadme(): string {
@@ -189,11 +195,39 @@ export function projectTemplate(ctx: TemplateContext): string {
     for (const filePath of ctx.paths) fm.push(`  - ${filePath}`);
   }
   fm.push("---");
+
+  const summaryParts: string[] = [];
+  if (ctx.projectName && ctx.projectDescription) {
+    summaryParts.push(`\`${ctx.projectName}\` — ${ctx.projectDescription}`);
+  } else if (ctx.projectName) {
+    summaryParts.push(`Repository: \`${ctx.projectName}\`.`);
+  } else {
+    summaryParts.push("Describe what this repo is, who it is for, and the slice currently in progress.");
+  }
+
+  const stackBits: string[] = [];
+  if (ctx.framework) stackBits.push(`Framework: ${ctx.framework}`);
+  if (ctx.packageManager) stackBits.push(`Package manager: ${ctx.packageManager}`);
+  if (ctx.testRunners && ctx.testRunners.length > 0) stackBits.push(`Tests: ${ctx.testRunners.join(", ")}`);
+  if (ctx.monorepo) stackBits.push("Layout: monorepo");
+  if (ctx.hasDocker) stackBits.push("Containerized (Docker)");
+  if (ctx.hasCi) stackBits.push("CI: GitHub Actions");
+
+  const overview =
+    stackBits.length > 0
+      ? `${summaryParts.join(" ")}\n\n- ${stackBits.join("\n- ")}`
+      : summaryParts.join(" ");
+
+  const layoutSection =
+    ctx.paths.length > 0
+      ? `\n\n## Layout\n\nKey directories detected: ${ctx.paths.map((p) => `\`${p}\``).join(", ")}.`
+      : "";
+
   return `${fm.join("\n")}
 
 # Project
 
-Describe what this repo is, who it is for, and the slice currently in progress. Replace this paragraph.
+${overview}${layoutSection}
 
 ## Commands
 

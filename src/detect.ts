@@ -11,7 +11,40 @@ export interface ProjectFacts {
   stacks: string[];
   makefileTargets: string[];
   files: string[];
+  /** Detected project metadata for smart `init`. */
+  projectName?: string;
+  projectDescription?: string;
+  testRunners: string[];
+  directories: string[];
+  monorepo: boolean;
+  hasDocker: boolean;
+  hasCi: boolean;
 }
+
+const KNOWN_DIRS = [
+  "src",
+  "app",
+  "lib",
+  "packages",
+  "apps",
+  "test",
+  "tests",
+  "__tests__",
+  "cmd",
+  "internal",
+  "pkg",
+  "docs",
+  "scripts",
+];
+
+const TEST_RUNNER_PACKAGES: Record<string, string> = {
+  vitest: "vitest",
+  jest: "jest",
+  mocha: "mocha",
+  playwright: "@playwright/test",
+  cypress: "cypress",
+  ava: "ava",
+};
 
 const FRAMEWORK_PACKAGES: Record<string, string> = {
   next: "next",
@@ -48,19 +81,34 @@ export async function detectProject(cwd: string): Promise<ProjectFacts> {
       "Cargo.toml",
       "Makefile",
       "makefile",
+      "pnpm-workspace.yaml",
+      "turbo.json",
+      "Dockerfile",
+      "docker-compose.yml",
+      "docker-compose.yaml",
     ],
   );
   const present = new Set(files);
   const managers: string[] = [];
   const frameworks: string[] = [];
   const stacks: string[] = [];
+  const testRunners: string[] = [];
   let scripts: string[] = [];
+  let projectName: string | undefined;
+  let projectDescription: string | undefined;
+  let monorepo = present.has("pnpm-workspace.yaml") || present.has("turbo.json");
 
   if (present.has("package.json")) {
     const parsed = await readJson(path.join(cwd, "package.json"));
+    if (typeof parsed.name === "string" && parsed.name.trim()) projectName = parsed.name.trim();
+    if (typeof parsed.description === "string" && parsed.description.trim()) {
+      projectDescription = parsed.description.trim();
+    }
+    if (Array.isArray(parsed.workspaces) || isRecord(parsed.workspaces)) monorepo = true;
     const pmField = typeof parsed.packageManager === "string" ? parsed.packageManager.split("@")[0] : "";
     if (pmField) managers.push(pmField);
-    scripts = Object.keys(isRecord(parsed.scripts) ? parsed.scripts : {});
+    const scriptRecord = isRecord(parsed.scripts) ? parsed.scripts : {};
+    scripts = Object.keys(scriptRecord);
     const deps = new Set<string>([
       ...Object.keys(isRecord(parsed.dependencies) ? parsed.dependencies : {}),
       ...Object.keys(isRecord(parsed.devDependencies) ? parsed.devDependencies : {}),
@@ -69,6 +117,11 @@ export async function detectProject(cwd: string): Promise<ProjectFacts> {
     for (const [framework, pkg] of Object.entries(FRAMEWORK_PACKAGES)) {
       if (deps.has(pkg)) frameworks.push(framework);
     }
+    for (const [runner, pkg] of Object.entries(TEST_RUNNER_PACKAGES)) {
+      if (deps.has(pkg)) pushUnique(testRunners, runner);
+    }
+    const testScript = typeof scriptRecord["test"] === "string" ? scriptRecord["test"] : "";
+    if (testScript.includes("node --test")) pushUnique(testRunners, "node:test");
     if (present.has("tsconfig.json") || deps.has("typescript")) stacks.push("typescript");
   } else if (present.has("tsconfig.json")) {
     stacks.push("typescript");
@@ -92,15 +145,18 @@ export async function detectProject(cwd: string): Promise<ProjectFacts> {
     for (const name of ["django", "fastapi", "flask"]) {
       if (new RegExp(`["']${name}["']`, "i").test(text)) pushUnique(frameworks, name);
     }
+    if (/pytest/i.test(text)) pushUnique(testRunners, "pytest");
   }
 
   if (present.has("go.mod")) {
     stacks.push("go");
     pushUnique(managers, "go");
+    pushUnique(testRunners, "go test");
   }
   if (present.has("Cargo.toml")) {
     stacks.push("rust");
     pushUnique(managers, "cargo");
+    pushUnique(testRunners, "cargo test");
   }
 
   const makefileTargets: string[] = [];
@@ -113,6 +169,12 @@ export async function detectProject(cwd: string): Promise<ProjectFacts> {
     }
   }
 
+  const directories = await existingDirs(cwd, KNOWN_DIRS);
+  const workflowsInfo = await stat(path.join(cwd, ".github", "workflows")).catch(() => null);
+  const hasCi = Boolean(workflowsInfo?.isDirectory());
+  const hasDocker =
+    present.has("Dockerfile") || present.has("docker-compose.yml") || present.has("docker-compose.yaml");
+
   return {
     packageManagers: managers,
     frameworks,
@@ -120,6 +182,13 @@ export async function detectProject(cwd: string): Promise<ProjectFacts> {
     stacks,
     makefileTargets,
     files,
+    projectName,
+    projectDescription,
+    testRunners,
+    directories,
+    monorepo,
+    hasDocker,
+    hasCi,
   };
 }
 
@@ -207,6 +276,15 @@ async function existing(cwd: string, names: string[]): Promise<string[]> {
   for (const name of names) {
     const info = await stat(path.join(cwd, name)).catch(() => null);
     if (info?.isFile()) found.push(name);
+  }
+  return found;
+}
+
+async function existingDirs(cwd: string, names: string[]): Promise<string[]> {
+  const found: string[] = [];
+  for (const name of names) {
+    const info = await stat(path.join(cwd, name)).catch(() => null);
+    if (info?.isDirectory()) found.push(name);
   }
   return found;
 }

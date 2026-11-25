@@ -5,10 +5,13 @@ import os from "node:os";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { captureEdits } from "./capture.js";
 import { checkBrief } from "./check.js";
 import { compileBrief } from "./compile.js";
 import { evalBrief } from "./eval.js";
+import { installHook, uninstallHook, writeCiWorkflow, type HookMode } from "./hook.js";
 import { initBrief } from "./init.js";
+import { serveMcp } from "./mcp.js";
 import { checkFailed, formatCheck, formatCompile } from "./print.js";
 import { acceptProposal, listPending, proposeChange, rejectProposal } from "./proposals.js";
 import { syncBrief } from "./sync.js";
@@ -27,6 +30,9 @@ Usage
   agentbrief init [--global] [--project] [--yes] [--lean]
   agentbrief compile [--global] [--project] [--variant short|full] [--lean|--native] [--force] [--dry-run]
   agentbrief check [--global] [--project] [--strict] [--variant short|full]
+  agentbrief capture [--global] [--project] [--include-outside]
+  agentbrief hook <install|uninstall|ci> [--mode check|compile] [--force]
+  agentbrief mcp
   agentbrief sync [--remote <git-url>]
   agentbrief propose --title <text> (--body <text> | --body-file <path>) [--layer personal|stack|project] [--file <path>] [--action append|prepend]
   agentbrief review [--accept <id|all>] [--reject <id>] [--reason <text>]
@@ -66,6 +72,8 @@ async function main(): Promise<void> {
       reason: { type: "string" },
       remote: { type: "string" },
       task: { type: "string" },
+      mode: { type: "string" },
+      "include-outside": { type: "boolean", default: false },
     },
   });
 
@@ -123,6 +131,48 @@ async function main(): Promise<void> {
       const report = await checkBrief({ ...base, strict: values.strict });
       console.log(formatCheck(report));
       if (checkFailed(report, values.strict)) process.exitCode = 1;
+      return;
+    }
+    case "capture": {
+      const result = await captureEdits({
+        ...base,
+        includeOutside: values["include-outside"],
+      });
+      for (const proposal of result.created) {
+        console.log(`captured ${proposal.id} -> ${proposal.layer}:${proposal.file} (${proposal.source})`);
+      }
+      for (const item of result.skipped) {
+        console.log(`skipped  ${item.displayPath} — ${item.reason}`);
+      }
+      if (result.created.length === 0) {
+        console.log("No new edits captured from compiled files.");
+      } else {
+        console.log("Run `agentbrief review` to accept or reject captured proposals.");
+      }
+      return;
+    }
+    case "hook": {
+      const sub = positionals[1] ?? "install";
+      if (sub === "install") {
+        const mode: HookMode = values.mode === "compile" ? "compile" : "check";
+        const res = await installHook(cwd, mode);
+        console.log(`${res.action.padEnd(9, " ")} ${res.message}`);
+        return;
+      }
+      if (sub === "uninstall") {
+        const res = await uninstallHook(cwd);
+        console.log(`${res.action.padEnd(9, " ")} ${res.message}`);
+        return;
+      }
+      if (sub === "ci") {
+        const res = await writeCiWorkflow(cwd, values.force);
+        console.log(`${res.action.padEnd(9, " ")} ${res.message}`);
+        return;
+      }
+      throw new Error(`Unknown hook subcommand "${sub}". Use install, uninstall, or ci.`);
+    }
+    case "mcp": {
+      await serveMcp({ ...base, version: pkg.version });
       return;
     }
     case "sync": {

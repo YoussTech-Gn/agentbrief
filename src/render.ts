@@ -1,3 +1,4 @@
+import { isScopedDoc } from "./scoped.js";
 import type { Composition, Scope, SourceDoc, Variant } from "./types.js";
 import { normalize } from "./util.js";
 
@@ -25,13 +26,14 @@ export function renderBrief(input: RenderInput): string {
 }
 
 export function selectDocs(input: RenderInput): SourceDoc[] {
+  const project = input.project.filter((doc) => !isScopedDoc(doc));
   if (input.scope === "global") {
     return [...input.personal, ...input.stacks];
   }
   if (input.composition === "layered") {
-    return [...input.stacks, ...input.project];
+    return [...input.stacks, ...project];
   }
-  return [...input.personal, ...input.stacks, ...input.project];
+  return [...input.personal, ...input.stacks, ...project];
 }
 
 export function applyVariant(body: string, variant: Variant): string {

@@ -61,14 +61,20 @@ export async function initBrief(options: InitOptions): Promise<InitResult> {
   const answers = await collectAnswers(options, detectedStacks);
   const packageManager = facts.packageManagers.length === 1 ? facts.packageManagers[0] : undefined;
   const framework = FRAMEWORK_PRIORITY.find((name) => facts.frameworks.includes(name));
-  const commands = packageManager && ["npm", "pnpm", "yarn", "bun"].includes(packageManager)
-    ? ["test", "lint", "typecheck", "build"]
-        .filter((script) => facts.scripts.includes(script))
-        .map((script) => `${packageManager} run ${script}`)
-    : [];
-  const paths: string[] = [];
-  const src = await stat(path.join(options.cwd, "src")).catch(() => null);
-  if (src?.isDirectory()) paths.push("src");
+  const commands: string[] = [];
+  if (packageManager && ["npm", "pnpm", "yarn", "bun"].includes(packageManager)) {
+    for (const script of ["test", "lint", "typecheck", "build", "dev"]) {
+      if (facts.scripts.includes(script)) commands.push(`${packageManager} run ${script}`);
+    }
+  }
+  for (const target of ["test", "lint", "build"]) {
+    if (facts.makefileTargets.includes(target)) commands.push(`make ${target}`);
+  }
+  const paths = [...facts.directories];
+  if (paths.length === 0) {
+    const src = await stat(path.join(options.cwd, "src")).catch(() => null);
+    if (src?.isDirectory()) paths.push("src");
+  }
   const ctx: TemplateContext = {
     name: answers.name,
     focus: answers.focus,
@@ -78,6 +84,12 @@ export async function initBrief(options: InitOptions): Promise<InitResult> {
     framework,
     commands,
     paths,
+    projectName: facts.projectName,
+    projectDescription: facts.projectDescription,
+    testRunners: facts.testRunners,
+    monorepo: facts.monorepo,
+    hasDocker: facts.hasDocker,
+    hasCi: facts.hasCi,
   };
   const messages: string[] = [];
   const created: string[] = [];

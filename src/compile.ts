@@ -4,7 +4,8 @@ import { applyProfile, budgetFor } from "./config.js";
 import { detectProject } from "./detect.js";
 import { isGlobalStack, loadLayers, type LayerSet } from "./layers.js";
 import { assemble, hashInner, parseRegion, PRESERVED_NOTE, renderBlock } from "./markers.js";
-import { renderBrief } from "./render.js";
+import { renderBrief, applyVariant } from "./render.js";
+import { isScopedDoc, scopedOutputsFor } from "./scoped.js";
 import { preambleFor, SESSIONS, TARGETS, toolHomes, type TargetSpec } from "./targets.js";
 import type {
   BriefConfig,
@@ -165,6 +166,39 @@ export async function planCompilation(options: CompileOptions): Promise<Plan> {
         charLimit: limit,
         byteLimit,
       });
+    }
+    if (scope === "project") {
+      for (const doc of layers.project.filter(isScopedDoc)) {
+        const scopedInner = applyVariant(doc.body, config.variant);
+        if (!scopedInner) continue;
+        for (const out of scopedOutputsFor(options.cwd, doc, config.targets)) {
+          const block = renderBlock({
+            target: out.target,
+            variant: config.variant,
+            composition: config.composition,
+            inner: `# ${doc.title}\n\n${scopedInner}`,
+          });
+          const contents = assemble(out.preamble, block, "");
+          const budget = budgetFor(config, out.target, config.variant);
+          const tokens = estimateTokens(contents, config.charsPerToken);
+          const bytes = Buffer.byteLength(contents);
+          plans.push({
+            scope: "project",
+            target: out.target,
+            absPath: out.absPath,
+            displayPath: displayPath(out.absPath, options.userHome, options.cwd),
+            manifestKey: manifestKey(out.absPath, options, "project"),
+            contents,
+            inner: normalize(`# ${doc.title}\n\n${scopedInner}`),
+            hash: hashInner(`# ${doc.title}\n\n${scopedInner}`),
+            tokens,
+            chars: contents.length,
+            bytes,
+            overBudget: tokens > budget,
+            budget,
+          });
+        }
+      }
     }
   }
   warnings.push(...sessionWarnings(plans, budgetFor(config, "agents", config.variant)));

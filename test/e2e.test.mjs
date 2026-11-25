@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 import { git, makeWorkspace, read, runCli, write } from "./helpers.mjs";
 
 test("init, compile, check, propose, and review run as a CLI", async () => {
@@ -71,7 +72,7 @@ test("sync pushes the personal layer and pulls it on another machine", async () 
     execFileSync("git", ["init", "--bare", "-b", "main", bare], { encoding: "utf8" });
     const init = runCli(["init", "--yes", "--global"], workspace);
     assert.equal(init.status, 0, init.stderr);
-    const remote = `file://${bare}`;
+    const remote = pathToFileURL(bare).href;
     const first = runCli(["sync", "--remote", remote], workspace);
     assert.equal(first.status, 0, first.stderr + first.stdout);
     assert.match(first.stdout, /Pushed/);

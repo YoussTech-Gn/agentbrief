@@ -52,6 +52,7 @@ export function runCli(args, workspace, extraEnv = {}) {
     env: {
       ...process.env,
       HOME: workspace.userHome,
+      USERPROFILE: workspace.userHome,
       USER: "ada",
       BRIEF_HOME: workspace.briefHome,
       CLAUDE_CONFIG_DIR: "",
