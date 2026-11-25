@@ -11,14 +11,14 @@ Your personal layer follows you across repositories and, through git, across mac
 Requires Node.js 20 or newer.
 
 ```bash
-npm install -g github:MYoussouf/agentbrief
+npm install -g github:YoussTech-Gn/agentbrief
 agentbrief --version
 ```
 
 Or build and install from source:
 
 ```bash
-git clone https://github.com/MYoussouf/agentbrief.git
+git clone https://github.com/YoussTech-Gn/agentbrief.git
 cd agentbrief
 npm install
 npm run build

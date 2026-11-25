@@ -6,11 +6,11 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MYoussouf/agentbrief.git"
+    "url": "git+https://github.com/YoussTech-Gn/agentbrief.git"
   },
-  "homepage": "https://github.com/MYoussouf/agentbrief#readme",
+  "homepage": "https://github.com/YoussTech-Gn/agentbrief#readme",
   "bugs": {
-    "url": "https://github.com/MYoussouf/agentbrief/issues"
+    "url": "https://github.com/YoussTech-Gn/agentbrief/issues"
   },
   "bin": {
     "agentbrief": "./dist/cli.js"

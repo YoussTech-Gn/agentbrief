@@ -21,7 +21,7 @@ const pkg = require("../package.json") as { version: string };
 
 const HELP = `agentbrief — one builder brief, compiled into every AI coding tool
 
-Install globally with \`npm install -g github:MYoussouf/agentbrief\` (or \`npm install -g .\` from source).
+Install globally with \`npm install -g github:YoussTech-Gn/agentbrief\` (or \`npm install -g .\` from source).
 
 Usage
   agentbrief init [--global] [--project] [--yes] [--lean]
