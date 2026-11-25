@@ -1,49 +1,52 @@
-# agentbrief
+# AgentBrief
 
-**Write your AI coding instructions once. Compile them into every tool you use.**
+**Write your project instructions once. Generate the files your AI coding tools read.**
 
-## Why we built this
-
-We kept running into the same friction across our projects: every AI coding tool expects its own instruction file in its own location — `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex, `GEMINI.md` for Gemini CLI, `.cursor/rules/brief.mdc` for Cursor, `.github/copilot-instructions.md` for Copilot, `.windsurf/rules/brief.md` for Windsurf, and `.grok/rules/brief.md` for Grok Build.
-
-Whenever we switched tools or started a new repo, we had to repeat how we like to work, copy-paste the same rules across half a dozen files, and hope none of them went stale. Worse, when an agent learned a new preference mid-session, it either got lost in chat history or silently edited a generated file.
-
-So we built **agentbrief**: one clean Markdown source (`~/.brief/` for your personal methodology and `.brief/` for each project) that compiles into the native instruction file of every AI coding tool you use. Your personal layer follows you across repositories and, through git, across machines. Agents can suggest updates via `agentbrief propose`, and nothing in the source changes until you accept it with `agentbrief review`.
-
-## Install
-
-Requires Node.js 20 or newer.
-
-```bash
-npm install -g @coddrex/agentbrief
-agentbrief --version
-```
-
-Or install directly from GitHub / build from source:
-
-```bash
-npm install -g github:YoussTech-Gn/agentbrief
-```
-
-```bash
-git clone https://github.com/YoussTech-Gn/agentbrief.git
-cd agentbrief
-npm install
-npm run build
-npm install -g .
-```
+If your team uses Claude Code and Codex on the same project, you may already maintain the same rules in `CLAUDE.md` and `AGENTS.md`. With AgentBrief, you edit one Markdown file and regenerate both. It runs locally and requires no API key.
 
 ## Quick start
 
+Install AgentBrief with Node.js 20 or newer:
+
 ```bash
-agentbrief init
-agentbrief compile
-agentbrief check
-agentbrief propose --title "Prefer early returns" --body "When a branch is a guard, return early."
-agentbrief review
+npm install -g @coddrex/agentbrief
 ```
 
-`agentbrief init` asks who you are, how you build, and which stacks you use, then writes `~/.brief/` and `.brief/` in the current repository. Pass `--yes` to accept the detected defaults. Then edit the markdown. `agentbrief compile` is what the tools actually read.
+From your project directory, create a starter brief:
+
+```bash
+agentbrief init --project --yes
+```
+
+Open `.brief/project.md` and add a rule your team follows. For example:
+
+```markdown
+Run `npm test` before submitting a change.
+```
+
+Preview the files AgentBrief will update:
+
+```bash
+agentbrief compile --project --dry-run
+```
+
+When you're ready, generate them:
+
+```bash
+agentbrief compile --project
+```
+
+Open `CLAUDE.md` and `AGENTS.md` in your project. Both now contain your test instruction. When the command changes, update the rule in `.brief/project.md` and compile again. Commit the project brief and the generated files so your teammates pick up the same rule.
+
+### Already have an instructions file?
+
+If your project already has a handwritten `CLAUDE.md` or `AGENTS.md`, the first compile backs it up in `.brief/backups/` and keeps your text below the generated section. You can keep editing that text. To update the generated section, edit the source brief and compile again.
+
+### Want personal preferences across projects?
+
+Run `agentbrief init --global`, edit the Markdown files in `~/.brief/`, then run `agentbrief compile --global`. The default `layered` setting puts personal instructions in your tools' global files. Projects configured with `composition = "full"` also include them in repository files.
+
+[Supported tools](#target-matrix) · [Command reference](#commands) · [Example project](#example) · [Benchmarks](#does-it-help)
 
 ## Layer model
 
@@ -319,15 +322,22 @@ agentbrief check --project
 
 ## Does it help?
 
-[evals/README.md](evals/README.md) describes the stub. `agentbrief eval` records the task once alone and once with the compiled brief, writes both prompts and a token estimate, and sets `model_output` to `null`. It does not call a model and it does not invent a score.
+To inspect what a brief adds to a prompt, run this from the AgentBrief source checkout:
 
 ```bash
 agentbrief eval --task evals/tasks/add-health-check.md
 ```
 
+For a paired comparison, the benchmark runs the same task in two fresh workspaces, one with AgentBrief and one without. Its mock runner exercises the harness with scripted edits. Measuring model performance requires a live run. See the [benchmark guide](https://github.com/YoussTech-Gn/agentbrief/blob/main/evals/benchmark_README.md) for commands and metrics.
+
 ## Development
 
+To build and test from source:
+
 ```bash
+git clone https://github.com/YoussTech-Gn/agentbrief.git
+cd agentbrief
+npm ci
 npm test
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "@coddrex/agentbrief",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "One living builder brief, compiled into the native instruction files of every AI coding tool you use (CLAUDE.md, AGENTS.md, GEMINI.md, Cursor, Copilot, Windsurf, Codex, Grok).",
   "license": "MIT",
   "type": "module",
