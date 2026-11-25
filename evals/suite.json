@@ -1,0 +1,34 @@
+{
+  "tasks": [
+    {
+      "id": "health",
+      "fixture": "fixtures/health",
+      "brief": "briefs/health",
+      "prompt": "benchmark-tasks/health.md",
+      "grader": "graders/health.py",
+      "allowed_paths": [
+        "src/health.mjs"
+      ]
+    },
+    {
+      "id": "auth",
+      "fixture": "fixtures/auth",
+      "brief": "briefs/auth",
+      "prompt": "benchmark-tasks/auth.md",
+      "grader": "graders/auth.py",
+      "allowed_paths": [
+        "src/access.mjs"
+      ]
+    },
+    {
+      "id": "architecture",
+      "fixture": "fixtures/architecture",
+      "brief": "briefs/architecture",
+      "prompt": "benchmark-tasks/architecture.md",
+      "grader": "graders/architecture.py",
+      "allowed_paths": [
+        "src/service.mjs"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+version = 1
+composition = "layered"
+variant = "short"
+stacks = []
+[targets]
+claude = true
+agents = true
+gemini = false
+cursor = false
+copilot = false
+windsurf = false
+codex = false
+grok = false

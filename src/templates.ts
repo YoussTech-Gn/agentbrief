@@ -1,4 +1,4 @@
-/** Starter layers. Written once by `brief init` and never overwritten. */
+/** Starter layers. Written once by `agentbrief init` and never overwritten. */
 
 export interface TemplateContext {
   name: string;
@@ -22,9 +22,9 @@ export function globalReadme(): string {
 
 This folder is the personal layer of a brief install. It is yours: methodology, goals, preferences, and stacks. Projects keep their own context in \`.brief/\` and compile both layers into the instruction files each coding tool already reads.
 
-Edit the markdown. Then run \`brief compile\`.
+Edit the markdown. Then run \`agentbrief compile\`.
 
-This directory is a git repo so \`brief sync\` can move it between machines. Do not put secrets in it.
+This directory is a git repo so \`agentbrief sync\` can move it between machines. Do not put secrets in it.
 `;
 }
 
@@ -36,10 +36,10 @@ export function globalConfig(ctx: TemplateContext): string {
   const targets = targetTable(ctx.profile);
   const stacks =
     ctx.stacks.length > 0 ? `stacks = [${ctx.stacks.map((id) => `"${id}"`).join(", ")}]\n` : "";
-  return `# Personal brief. Human-editable. Copied into every tool by \`brief compile\`.
+  return `# Personal brief. Human-editable. Copied into every tool by \`agentbrief compile\`.
 version = 1
 variant = "full"
-composition = "full"
+composition = "layered"
 profile = "${ctx.profile}"
 ${stacks}
 [budget]
@@ -58,7 +58,7 @@ export function projectConfig(ctx: TemplateContext): string {
     "# Project layer. Overrides ~/.brief/brief.toml for this repo.",
     "version = 1",
     `variant = "full"`,
-    `composition = "full"`,
+    `composition = "layered"`,
     `profile = "${ctx.profile}"`,
   ];
   if (ctx.stacks.length) {
@@ -120,7 +120,7 @@ order: 20
 
 - Say what changed, why, and which checks ran.
 - Say what you did not verify.
-- If you learned a durable preference, run \`brief propose\` instead of silently editing a compiled file.
+- If you learned a durable preference, run \`agentbrief propose\` instead of silently editing a compiled file.
 `;
 }
 
@@ -167,7 +167,7 @@ Rewrite this file when the work changes. A stale goal is worse than a short one.
 
 ## Next
 
-- Turn a repeated correction into a line in this brief, via \`brief propose\`.
+- Turn a repeated correction into a line in this brief, via \`agentbrief propose\`.
 
 ## Not now
 
@@ -345,7 +345,7 @@ Write the rules an agent should follow in every ${id} project. Keep the short ve
 
 <!-- brief:detail -->
 
-Add the longer explanation here. \`brief compile --variant short\` drops everything after the detail marker.
+Add the longer explanation here. \`agentbrief compile --variant short\` drops everything after the detail marker.
 `;
 }
 

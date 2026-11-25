@@ -10,13 +10,13 @@ export interface SyncResult {
 
 export function syncBrief(briefHome: string, remote?: string): SyncResult {
   if (!existsSync(briefHome)) {
-    throw new Error(`No personal brief at ${briefHome}. Run brief init --global first.`);
+    throw new Error(`No personal brief at ${briefHome}. Run agentbrief init --global first.`);
   }
   ensureRepo(briefHome);
   ensureIdentity(briefHome);
   if (rebaseInProgress(briefHome)) {
     throw new Error(
-      "A rebase is already in progress in the brief repo. Finish it or run `git rebase --abort` there, then brief sync again.",
+      "A rebase is already in progress in the brief repo. Finish it or run `git rebase --abort` there, then agentbrief sync again.",
     );
   }
   const messages: string[] = [];
@@ -28,7 +28,7 @@ export function syncBrief(briefHome: string, remote?: string): SyncResult {
   const staged = git(briefHome, ["diff", "--cached", "--name-only"]);
   let committed = false;
   if (staged.trim()) {
-    git(briefHome, ["commit", "-m", "brief sync"]);
+    git(briefHome, ["commit", "-m", "agentbrief sync"]);
     committed = true;
     messages.push("Committed local brief changes.");
   } else {
@@ -41,7 +41,7 @@ export function syncBrief(briefHome: string, remote?: string): SyncResult {
     origin = "";
   }
   if (!origin) {
-    messages.push("No git remote yet. Add one with `brief sync --remote <git-url>`, then run `brief sync` again.");
+    messages.push("No git remote yet. Add one with `agentbrief sync --remote <git-url>`, then run `agentbrief sync` again.");
     return { messages, committed, pushed: false };
   }
   const branch = currentBranch(briefHome);

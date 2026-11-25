@@ -198,7 +198,7 @@ async function main(): Promise<void> {
       console.log(`pending  ${proposal.id}`);
       console.log(`layer    ${proposal.layer}`);
       console.log(`file     ${proposal.file}`);
-      console.log("Nothing was changed in the source. Run `brief review` to accept or reject it.");
+      console.log("Nothing was changed in the source. Run `agentbrief review` to accept or reject it.");
       return;
     }
     case "review": {
@@ -213,7 +213,7 @@ async function main(): Promise<void> {
           const done = await acceptProposal(cwd, home, id);
           console.log(`accepted ${done.id} -> ${done.layer}:${done.file}`);
         }
-        console.log("Source updated. Run `brief compile` when you want tools to see it.");
+        console.log("Source updated. Run `agentbrief compile` when you want tools to see it.");
         return;
       }
       if (values.reject) {

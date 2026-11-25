@@ -99,8 +99,8 @@ The longer explanation. `agentbrief compile --variant short` drops this.
 
 `composition` in `brief.toml`:
 
-- `full` (the default) writes personal + selected stacks + project into the repository files. A tool that only reads the repo still sees how you work.
-- `layered` writes personal content only into the global tool files (`~/.claude/CLAUDE.md` and the others). Repository files get the stacks and the project. Use this when the personal layer should not be committed.
+- `full` writes personal + selected stacks + project into the repository files. A tool that only reads the repo still sees how you work.
+- `layered` (the default) writes personal content only into the global tool files (`~/.claude/CLAUDE.md` and the others). Repository files get the stacks and the project. Use this when the personal layer should not be committed.
 
 Global tool files never include the project layer. Project files are selected like this:
 
@@ -139,6 +139,10 @@ Always validate request payloads with zod.
 ```
 
 `agentbrief compile` omits scoped files from the main `AGENTS.md` and compiles them into native path-filtered rules for Cursor (`.cursor/rules/brief-<slug>.mdc`), Claude Code (`.claude/rules/brief-<slug>.md`), and Copilot (`.github/instructions/brief-<slug>.instructions.md`). MCP clients can query them dynamically via `get_rules_for_path`.
+
+The manifest records the entire generated scoped file, including its path filters. Recompiling updates an untouched file when its glob changes and removes an untouched rule when its source disappears. Locally edited files and obsolete files from older manifests are retained for review. Run `agentbrief compile --dry-run` to preview removal. Conflicting source names that resolve to the same output stop compilation.
+
+Repeated rendered sections appear once per brief. The native profile still generates separate files for tools that need them. Managed text reads and writes reject symbolic links and Windows junctions in their path. Use physical paths for the project, brief, and tool directories.
 
 ### MCP server (`agentbrief mcp`)
 

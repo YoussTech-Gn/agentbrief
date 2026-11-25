@@ -218,7 +218,7 @@ export function preambleFor(wrap: Wrap, scope: Scope): string {
   if (wrap === "cursor-mdc") {
     return [
       "---",
-      "description: Builder brief compiled by brief. Edit the source layers, then run brief compile.",
+      "description: Builder brief compiled by brief. Edit the source layers, then run agentbrief compile.",
       "alwaysApply: true",
       "---",
       "",

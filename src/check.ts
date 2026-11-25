@@ -1,7 +1,7 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { budgetFor } from "./config.js";
-import { manifestFile, planCompilation, readManifest, type Manifest } from "./compile.js";
+import { fileHash, isScopedKey, manifestFile, planCompilation, readManifest, type Manifest } from "./compile.js";
 import { commandScript, declarationsFrom, detectProject } from "./detect.js";
 import { hashInner, parseRegion } from "./markers.js";
 import { SESSIONS, TARGETS, toolHomes } from "./targets.js";
@@ -21,7 +21,7 @@ export async function checkBrief(options: CompileOptions & { strict?: boolean })
     const existing = await readText(plan.absPath);
     const manifestHash = manifests.get(plan.scope)?.files[plan.manifestKey]?.hash;
     if (existing === null || existing.trim() === "") {
-      findings.push({ severity: "error", code: "missing", path: plan.displayPath, message: `${plan.displayPath} is missing. Run brief compile.` });
+      findings.push({ severity: "error", code: "missing", path: plan.displayPath, message: `${plan.displayPath} is missing. Run agentbrief compile.` });
       files.push({ displayPath: plan.displayPath, status: "missing", tokens: plan.tokens });
       continue;
     }
@@ -38,14 +38,17 @@ export async function checkBrief(options: CompileOptions & { strict?: boolean })
     }
     const bodyHash = hashInner(region.inner);
     const markerHash = region.attrs["hash"];
-    if (bodyHash === plan.hash) {
+    if (plan.scoped && fileHash(existing) !== fileHash(plan.contents) && bodyHash === plan.hash) {
+      findings.push({ severity: "error", code: "stale", path: plan.displayPath, message: `${plan.displayPath} has outdated or edited scoped rule metadata.` });
+      files.push({ displayPath: plan.displayPath, status: "stale", tokens: plan.tokens });
+    } else if (bodyHash === plan.hash) {
       files.push({ displayPath: plan.displayPath, status: "ok", tokens: plan.tokens });
     } else if (markerHash && bodyHash !== markerHash) {
       findings.push({
         severity: "error",
         code: "edited",
         path: plan.displayPath,
-        message: `${plan.displayPath} was edited inside the generated region. Move the change into a source layer with brief propose, or recompile with --force.`,
+        message: `${plan.displayPath} was edited inside the generated region. Move the change into a source layer with agentbrief propose, or recompile with --force.`,
       });
       files.push({ displayPath: plan.displayPath, status: "edited", tokens: plan.tokens });
     } else if (!manifestHash || bodyHash === manifestHash || bodyHash === markerHash) {
@@ -99,6 +102,12 @@ export async function checkBrief(options: CompileOptions & { strict?: boolean })
     });
   }
 
+  const active = new Set(planned.plans.filter(plan => plan.scope === "project").map(plan => plan.manifestKey));
+  for (const key of Object.keys(manifests.get("project")?.files ?? {})) {
+    if (isScopedKey(key) && !active.has(key) && await readText(path.join(options.cwd, key)) !== null) {
+      findings.push({ severity: "warning", code: "orphan", path: key, message: `Obsolete scoped rule: ${key}.` });
+    }
+  }
   await findOrphans(options, planned.plans, planned.scopes, findings);
   if (planned.scopes.includes("project")) {
     findings.push(...(await codeFindings(options.cwd, planned.config.packageManager, planned.config.framework, planned.layers.project)));

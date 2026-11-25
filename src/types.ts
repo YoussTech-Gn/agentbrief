@@ -73,6 +73,7 @@ export interface CompileOptions {
 }
 
 export interface PlannedFile {
+  scoped?: boolean;
   scope: Scope;
   target: TargetId;
   /** Absolute path that would be written. */

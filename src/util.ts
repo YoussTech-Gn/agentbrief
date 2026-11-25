@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { lstat, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export function normalize(text: string): string {
@@ -15,7 +15,26 @@ export function estimateTokens(text: string, charsPerToken: number): number {
   return Math.max(1, Math.ceil(text.length / divisor));
 }
 
+/** Refuse linked files and directories before managed filesystem operations. */
+export async function assertUnlinked(file: string): Promise<void> {
+  const absolute = path.resolve(file);
+  const root = path.parse(absolute).root;
+  let current = root;
+  for (const part of absolute.slice(root.length).split(path.sep).filter(Boolean)) {
+    current = path.join(current, part);
+    try {
+      if ((await lstat(current)).isSymbolicLink()) {
+        throw new Error(`Refusing symbolic link: ${current}`);
+      }
+    } catch (error) {
+      if (isEnoent(error)) return;
+      throw error;
+    }
+  }
+}
+
 export async function readText(file: string): Promise<string | null> {
+  await assertUnlinked(file);
   try {
     return await readFile(file, "utf8");
   } catch (error) {
@@ -25,10 +44,15 @@ export async function readText(file: string): Promise<string | null> {
 }
 
 export async function writeText(file: string, contents: string): Promise<void> {
+  await assertUnlinked(file);
   await mkdir(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.tmp`;
-  await writeFile(tmp, contents, "utf8");
-  await rename(tmp, file);
+  const tmp = `${file}.${randomUUID()}.tmp`;
+  await writeFile(tmp, contents, { encoding: "utf8", flag: "wx" });
+  try {
+    await rename(tmp, file);
+  } finally {
+    await unlink(tmp).catch((error: unknown) => { if (!isEnoent(error)) throw error; });
+  }
 }
 
 export function isEnoent(error: unknown): boolean {

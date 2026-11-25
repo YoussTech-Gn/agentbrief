@@ -2,7 +2,7 @@ import { readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { parseFrontMatter, stringifyDocument } from "./frontmatter.js";
 import type { LayerName, Proposal } from "./types.js";
-import { readText, resolveInside, slug, stamp, writeText } from "./util.js";
+import { assertUnlinked, readText, resolveInside, slug, stamp, writeText } from "./util.js";
 
 export interface ProposeInput {
   cwd: string;
@@ -33,7 +33,7 @@ export async function proposeChange(input: ProposeInput): Promise<Proposal> {
     absPath: "",
   };
   // Touch the destination now so a bad path fails before we write the inbox.
-  targetPath(input.cwd, input.briefHome, proposal);
+  await assertUnlinked(targetPath(input.cwd, input.briefHome, proposal));
   const inbox = inboxDir(input.cwd, input.briefHome, proposal.layer);
   proposal.absPath = path.join(inbox, `${proposal.id}.md`);
   await writeText(proposal.absPath, serialize(proposal));

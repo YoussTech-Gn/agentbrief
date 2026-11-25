@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import path from "node:path";
 import type { SourceDoc } from "./types.js";
 import { asString, asStringList, readText } from "./util.js";
@@ -291,7 +291,7 @@ async function existingDirs(cwd: string, names: string[]): Promise<string[]> {
 
 async function readJson(file: string): Promise<Record<string, unknown>> {
   try {
-    const text = await readFile(file, "utf8");
+    const text = (await readText(file)) ?? "";
     const parsed = JSON.parse(text) as unknown;
     return isRecord(parsed) ? parsed : {};
   } catch {

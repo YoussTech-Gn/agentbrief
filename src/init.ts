@@ -16,7 +16,7 @@ import {
   type TemplateContext,
 } from "./templates.js";
 import type { Profile } from "./types.js";
-import { readText, writeText } from "./util.js";
+import { assertUnlinked, readText, writeText } from "./util.js";
 
 const FRAMEWORK_PRIORITY = [
   "next",
@@ -114,7 +114,7 @@ export async function initBrief(options: InitOptions): Promise<InitResult> {
       `Detected more than one package manager (${facts.packageManagers.join(", ")}), so none was declared. Set package_manager in .brief/brief.toml when you know which one this repo uses.`,
     );
   }
-  messages.push("Next: edit the markdown, then run `brief compile`.");
+  messages.push("Next: edit the markdown, then run `agentbrief compile`.");
   return { messages, created, kept };
 }
 
@@ -154,6 +154,7 @@ function cleanStacks(ids: string[]): string[] {
 }
 
 async function writeGlobal(briefHome: string, ctx: TemplateContext, created: string[], kept: string[]): Promise<void> {
+  await assertUnlinked(path.join(briefHome, "stacks"));
   await mkdir(path.join(briefHome, "stacks"), { recursive: true });
   await createIfMissing(path.join(briefHome, "README.md"), globalReadme(), created, kept);
   await createIfMissing(path.join(briefHome, ".gitignore"), globalGitignore(), created, kept);
@@ -168,6 +169,7 @@ async function writeGlobal(briefHome: string, ctx: TemplateContext, created: str
 }
 
 async function writeProject(cwd: string, ctx: TemplateContext, created: string[], kept: string[]): Promise<void> {
+  await assertUnlinked(path.join(cwd, ".brief"));
   await mkdir(path.join(cwd, ".brief"), { recursive: true });
   await createIfMissing(path.join(cwd, ".brief", "brief.toml"), projectConfig(ctx), created, kept);
   await createIfMissing(path.join(cwd, ".brief", "project.md"), projectTemplate(ctx), created, kept);

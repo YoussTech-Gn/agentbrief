@@ -27,7 +27,7 @@ test("init, compile, check, propose, and review run as a CLI", async () => {
 
     const compile = runCli(["compile"], workspace);
     assert.equal(compile.status, 0, compile.stderr + compile.stdout);
-    assert.match(await read(path.join(workspace.cwd, "AGENTS.md")), /How I build/);
+    assert.doesNotMatch(await read(path.join(workspace.cwd, "AGENTS.md")), /How I build/);
     assert.match(await read(path.join(workspace.cwd, "CLAUDE.md")), /express|Project/);
     assert.match(await read(path.join(workspace.userHome, ".claude", "CLAUDE.md")), /How I build/);
 
@@ -53,7 +53,8 @@ test("init, compile, check, propose, and review run as a CLI", async () => {
 
     const again = runCli(["compile"], workspace);
     assert.equal(again.status, 0, again.stderr);
-    assert.match(await read(path.join(workspace.cwd, "AGENTS.md")), /return early/);
+    assert.doesNotMatch(await read(path.join(workspace.cwd, "AGENTS.md")), /return early/);
+    assert.match(await read(path.join(workspace.userHome, ".claude", "CLAUDE.md")), /return early/);
     const clean = runCli(["check"], workspace);
     assert.equal(clean.status, 0, clean.stdout);
 

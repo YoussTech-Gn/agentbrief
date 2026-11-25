@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "compiledAt": "2026-11-22T23:22:36.759Z",
+  "compiledAt": "2026-11-25T16:56:23.059Z",
   "variant": "full",
   "composition": "full",
   "files": {
@@ -8,57 +8,57 @@
       "target": "claude",
       "scope": "project",
       "variant": "full",
-      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
-      "bytes": 3779,
-      "tokens": 945
+      "hash": "8ebf69c1d4dad244901680fe5e11ecc505f28614d880f2d7c0f36813477cc272",
+      "bytes": 3794,
+      "tokens": 949
     },
     "AGENTS.md": {
       "target": "agents",
       "scope": "project",
       "variant": "full",
-      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
-      "bytes": 3779,
-      "tokens": 945
+      "hash": "8ebf69c1d4dad244901680fe5e11ecc505f28614d880f2d7c0f36813477cc272",
+      "bytes": 3794,
+      "tokens": 949
     },
     "GEMINI.md": {
       "target": "gemini",
       "scope": "project",
       "variant": "full",
-      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
-      "bytes": 3779,
-      "tokens": 945
+      "hash": "8ebf69c1d4dad244901680fe5e11ecc505f28614d880f2d7c0f36813477cc272",
+      "bytes": 3794,
+      "tokens": 949
     },
     ".cursor/rules/brief.mdc": {
       "target": "cursor",
       "scope": "project",
       "variant": "full",
-      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
-      "bytes": 3899,
-      "tokens": 975
+      "hash": "8ebf69c1d4dad244901680fe5e11ecc505f28614d880f2d7c0f36813477cc272",
+      "bytes": 3919,
+      "tokens": 980
     },
     ".github/copilot-instructions.md": {
       "target": "copilot",
       "scope": "project",
       "variant": "full",
-      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
-      "bytes": 3780,
-      "tokens": 945
+      "hash": "8ebf69c1d4dad244901680fe5e11ecc505f28614d880f2d7c0f36813477cc272",
+      "bytes": 3795,
+      "tokens": 949
     },
     ".windsurf/rules/brief.md": {
       "target": "windsurf",
       "scope": "project",
       "variant": "full",
-      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
-      "bytes": 3853,
-      "tokens": 964
+      "hash": "8ebf69c1d4dad244901680fe5e11ecc505f28614d880f2d7c0f36813477cc272",
+      "bytes": 3868,
+      "tokens": 967
     },
     ".grok/rules/brief.md": {
       "target": "grok",
       "scope": "project",
       "variant": "full",
-      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
-      "bytes": 3777,
-      "tokens": 945
+      "hash": "8ebf69c1d4dad244901680fe5e11ecc505f28614d880f2d7c0f36813477cc272",
+      "bytes": 3792,
+      "tokens": 948
     }
   }
 }

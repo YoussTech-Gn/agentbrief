@@ -1,0 +1,1 @@
+Fix the authorization defect in canRead. Private records must only be readable by their owner. Keep the existing public interface and avoid unrelated changes. The user has an id and the record has an ownerId.

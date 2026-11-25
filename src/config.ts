@@ -12,7 +12,7 @@ export function baseConfig(): BriefConfig {
   return {
     version: 1,
     variant: "full",
-    composition: "full",
+    composition: "layered",
     profile: "native",
     stacks: null,
     targets,
@@ -60,7 +60,7 @@ export function configFromToml(toml: Toml): Partial<BriefConfig> & { stacksSpeci
         any = true;
       }
     }
-    if (any) partial.targets = { ...baseConfig().targets, ...targets };
+    if (any) partial.targets = targets;
   }
 
   const budget = tomlGet(toml, "budget");

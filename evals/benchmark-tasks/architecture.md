@@ -1,0 +1,1 @@
+Fix invoiceTotal to account for item quantities. Preserve the existing named export and return totals in integer minor units. Handle invalid amounts and integer overflow safely. Reuse existing utilities when appropriate; keep changes focused.
