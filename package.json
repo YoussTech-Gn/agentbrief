@@ -1,6 +1,6 @@
 {
-  "name": "agent-brief",
-  "version": "0.1.0",
+  "name": "@coddrex/agentbrief",
+  "version": "0.1.1",
   "description": "One living builder brief, compiled into the native instruction files of every AI coding tool you use (CLAUDE.md, AGENTS.md, GEMINI.md, Cursor, Copilot, Windsurf, Codex, Grok).",
   "license": "MIT",
   "type": "module",
@@ -13,7 +13,7 @@
     "url": "https://github.com/YoussTech-Gn/agentbrief/issues"
   },
   "bin": {
-    "agentbrief": "./dist/cli.js"
+    "agentbrief": "dist/cli.js"
   },
   "files": [
     "dist",

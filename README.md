@@ -15,11 +15,15 @@ So we built **agentbrief**: one clean Markdown source (`~/.brief/` for your pers
 Requires Node.js 20 or newer.
 
 ```bash
-npm install -g github:YoussTech-Gn/agentbrief
+npm install -g @coddrex/agentbrief
 agentbrief --version
 ```
 
-Or build and install from source:
+Or install directly from GitHub / build from source:
+
+```bash
+npm install -g github:YoussTech-Gn/agentbrief
+```
 
 ```bash
 git clone https://github.com/YoussTech-Gn/agentbrief.git
