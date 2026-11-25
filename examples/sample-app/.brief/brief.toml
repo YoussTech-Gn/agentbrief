@@ -1,0 +1,17 @@
+# Project layer. Overrides ~/.brief/brief.toml for this repo.
+version = 1
+variant = "full"
+composition = "full"
+profile = "native"
+package_manager = "npm"
+
+[targets]
+claude = true
+agents = true
+gemini = true
+cursor = true
+copilot = true
+windsurf = true
+codex = true
+grok = true
+

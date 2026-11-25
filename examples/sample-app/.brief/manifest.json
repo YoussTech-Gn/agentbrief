@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "compiledAt": "2026-11-22T23:22:36.759Z",
+  "variant": "full",
+  "composition": "full",
+  "files": {
+    "CLAUDE.md": {
+      "target": "claude",
+      "scope": "project",
+      "variant": "full",
+      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
+      "bytes": 3779,
+      "tokens": 945
+    },
+    "AGENTS.md": {
+      "target": "agents",
+      "scope": "project",
+      "variant": "full",
+      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
+      "bytes": 3779,
+      "tokens": 945
+    },
+    "GEMINI.md": {
+      "target": "gemini",
+      "scope": "project",
+      "variant": "full",
+      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
+      "bytes": 3779,
+      "tokens": 945
+    },
+    ".cursor/rules/brief.mdc": {
+      "target": "cursor",
+      "scope": "project",
+      "variant": "full",
+      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
+      "bytes": 3899,
+      "tokens": 975
+    },
+    ".github/copilot-instructions.md": {
+      "target": "copilot",
+      "scope": "project",
+      "variant": "full",
+      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
+      "bytes": 3780,
+      "tokens": 945
+    },
+    ".windsurf/rules/brief.md": {
+      "target": "windsurf",
+      "scope": "project",
+      "variant": "full",
+      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
+      "bytes": 3853,
+      "tokens": 964
+    },
+    ".grok/rules/brief.md": {
+      "target": "grok",
+      "scope": "project",
+      "variant": "full",
+      "hash": "374a38810cc06f73b1d941afaaa9cf6c72dcfd25224496123fa7fb3d0aeecd82",
+      "bytes": 3777,
+      "tokens": 945
+    }
+  }
+}

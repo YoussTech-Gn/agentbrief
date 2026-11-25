@@ -1,0 +1,52 @@
+{
+  "name": "agent-brief",
+  "version": "0.1.0",
+  "description": "One living builder brief, compiled into the native instruction files of every AI coding tool you use (CLAUDE.md, AGENTS.md, GEMINI.md, Cursor, Copilot, Windsurf, Codex, Grok).",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoussouf/agentbrief.git"
+  },
+  "homepage": "https://github.com/MYoussouf/agentbrief#readme",
+  "bugs": {
+    "url": "https://github.com/MYoussouf/agentbrief/issues"
+  },
+  "bin": {
+    "agentbrief": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"if(process.platform!=='win32')require('fs').chmodSync('dist/cli.js',0o755)\"",
+    "prepare": "tsc && node -e \"if(process.platform!=='win32')require('fs').chmodSync('dist/cli.js',0o755)\"",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "agentbrief": "node dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "^5.9.0"
+  },
+  "keywords": [
+    "ai-agents",
+    "agents",
+    "claude-code",
+    "claude-md",
+    "cursor",
+    "cursor-rules",
+    "codex",
+    "gemini-cli",
+    "copilot",
+    "windsurf",
+    "grok",
+    "AGENTS.md",
+    "developer-tools",
+    "cli"
+  ]
+}

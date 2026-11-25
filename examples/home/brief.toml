@@ -1,0 +1,23 @@
+# Personal brief. Human-editable. Copied into every tool by `brief compile`.
+version = 1
+variant = "full"
+composition = "full"
+profile = "native"
+
+[budget]
+full = 4000
+short = 1500
+chars_per_token = 4
+
+[targets]
+claude = true
+agents = true
+gemini = true
+cursor = true
+copilot = true
+windsurf = true
+codex = true
+grok = true
+
+[sync]
+remote = ""

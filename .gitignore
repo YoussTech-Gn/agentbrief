@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+evals/results/
+examples/sample-app/.brief/backups/
+examples/sample-app/.brief/inbox/
