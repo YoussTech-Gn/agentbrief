@@ -2,9 +2,13 @@
 
 **Write your AI coding instructions once. Compile them into every tool you use.**
 
-You keep one clean source in plain Markdown (`~/.brief/` for your personal methodology and `.brief/` for each project). `agentbrief compile` generates and keeps in sync the native instruction files for **Claude Code** (`CLAUDE.md`), **OpenAI Codex** (`AGENTS.md`), **Gemini CLI** (`GEMINI.md`), **Cursor** (`.cursor/rules/brief.mdc`), **GitHub Copilot** (`.github/copilot-instructions.md`), **Windsurf** (`.windsurf/rules/brief.md`), and **Grok Build** (`.grok/rules/brief.md`).
+## Why we built this
 
-Your personal layer follows you across repositories and, through git, across machines. Agents can suggest updates via `agentbrief propose`, and nothing in the source changes until you accept it with `agentbrief review`.
+We kept running into the same friction across our projects: every AI coding tool expects its own instruction file in its own location — `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex, `GEMINI.md` for Gemini CLI, `.cursor/rules/brief.mdc` for Cursor, `.github/copilot-instructions.md` for Copilot, `.windsurf/rules/brief.md` for Windsurf, and `.grok/rules/brief.md` for Grok Build.
+
+Whenever we switched tools or started a new repo, we had to repeat how we like to work, copy-paste the same rules across half a dozen files, and hope none of them went stale. Worse, when an agent learned a new preference mid-session, it either got lost in chat history or silently edited a generated file.
+
+So we built **agentbrief**: one clean Markdown source (`~/.brief/` for your personal methodology and `.brief/` for each project) that compiles into the native instruction file of every AI coding tool you use. Your personal layer follows you across repositories and, through git, across machines. Agents can suggest updates via `agentbrief propose`, and nothing in the source changes until you accept it with `agentbrief review`.
 
 ## Install
 
