@@ -66,7 +66,7 @@ order: 20
 ---
 ```
 
-Project files can also declare facts `agentbrief ` compares to the repo:
+Project files can also declare facts `agentbrief check` compares to the repo:
 
 ```markdown
 ---
@@ -90,7 +90,7 @@ Lead with the result.
 
 <!-- brief:detail -->
 
-The longer explanation. `agentbrief  --variant short` drops this.
+The longer explanation. `agentbrief compile --variant short` drops this.
 ```
 
 `variant` in `brief.toml` is `full` or `short`. `--variant` overrides it for one run. There is one variant at a time, so a tool is not given both.
@@ -163,13 +163,13 @@ Generated files carry a marker:
 <!-- brief:end -->
 ```
 
-Text outside the marker is yours. brief will not delete it. The first time brief sees a file it did not generate, it copies the original into `.brief/backups/` (or `~/.brief/backups/` for a global file) and leaves that text below the generated block. If you edit inside the marker, `agentbrief ` refuses to overwrite it until you pass `--force`, which writes a backup first.
+Text outside the marker is yours. agentbrief will not delete it. The first time agentbrief sees a file it did not generate, it copies the original into `.brief/backups/` (or `~/.brief/backups/` for a global file) and leaves that text below the generated block. If you edit inside the marker, `agentbrief compile` refuses to overwrite it until you pass `--force`, which writes a backup first.
 
-Commit the project files brief writes. The tools read those files, not `.brief/`. The personal layer stays in `~/.brief` and moves between machines with `agentbrief `.
+Commit the project files agentbrief writes. The tools read those files, not `.brief/`. The personal layer stays in `~/.brief` and moves between machines with `agentbrief sync`.
 
 ## Target matrix
 
-Checked against the docs linked here on 22 November 2026. `agentbrief ` writes the file in the Project column into the repository, and the file in the Global column into your home directory.
+Checked against the docs linked here on 22 November 2026. `agentbrief compile` writes the file in the Project column into the repository, and the file in the Global column into your home directory.
 
 | Tool | Project file | Global file | Docs |
 | --- | --- | --- | --- |
@@ -188,7 +188,7 @@ Cursor rules need the `.mdc` extension and front matter or Cursor ignores them. 
 
 ### What one session actually loads
 
-Several tools read more than one of these files. `agentbrief ` prints the sum. With the default budget of 4000 tokens, the starter brief fits in each file and trips the warning only for Copilot CLI, which loads five of them.
+Several tools read more than one of these files. `agentbrief check` prints the sum. With the default budget of 4000 tokens, the starter brief fits in each file and trips the warning only for Copilot CLI, which loads five of them.
 
 | Tool | Loads, from the docs above |
 | --- | --- |
@@ -200,7 +200,7 @@ Several tools read more than one of these files. `agentbrief ` prints the sum. W
 | Windsurf | `~/.codeium/windsurf/memories/global_rules.md`, `.windsurf/rules/*.md`, and root `AGENTS.md`. |
 | Grok Build | `~/.grok/`, then `AGENTS.md`, `CLAUDE.md`, and `.grok/rules/*.md`. |
 
-`agentbrief  --lean`, or `profile = "lean"`, turns off the Cursor, Windsurf, and Grok copies, because those tools also read `AGENTS.md` or `CLAUDE.md`. Claude, Gemini, Copilot, and Codex stay on: each of them has a file the others do not reliably read. `--native` turns every target back on for one run.
+`agentbrief init --lean`, or `profile = "lean"`, turns off the Cursor, Windsurf, and Grok copies, because those tools also read `AGENTS.md` or `CLAUDE.md`. Claude, Gemini, Copilot, and Codex stay on: each of them has a file the others do not reliably read. `--native` turns every target back on for one run.
 
 Turn a single target off in `brief.toml`:
 
@@ -218,7 +218,7 @@ The estimate is `characters / chars_per_token` (default 4). It is not a model to
 full = 6000
 ```
 
-`agentbrief ` still writes a file that is over budget. `agentbrief ` reports it as a warning, and as an error if you pass `--strict`.
+`agentbrief compile` still writes a file that is over budget. `agentbrief check` reports it as a warning, and as an error if you pass `--strict`.
 
 Two hard caps from the docs are checked the same way:
 
@@ -227,7 +227,7 @@ Two hard caps from the docs are checked the same way:
 
 ## Drift
 
-`agentbrief ` compares each generated region with the source layers and with the hash stored in the marker.
+`agentbrief check` compares each generated region with the source layers and with the hash stored in the marker.
 
 - The region matches the source: ok.
 - The hash in the marker matches the body, and the body does not match the source: the file is stale. Compile again.
@@ -248,7 +248,7 @@ A personal note that mentions `src/app.ts` is not checked. That path belongs to 
 An agent, or you, records a suggestion. The source files stay as they are.
 
 ```bash
-agentbrief  \
+agentbrief propose \
   --layer personal \
   --file preferences.md \
   --title "Prefer early returns" \
@@ -259,27 +259,27 @@ agentbrief  \
 `--layer` is `personal`, `stack`, or `project`. `--action` is `append` (the default) or `prepend`. `--body-file` reads the suggestion from a file, and a pipe is used when stdin is not a terminal.
 
 ```bash
-agentbrief  --accept 20261122T120000Z-prefer-early-returns
-agentbrief  --reject 20261122T120000Z-prefer-early-returns --reason "Not a real preference"
-agentbrief 
+agentbrief review --accept 20261122T120000Z-prefer-early-returns
+agentbrief review --reject 20261122T120000Z-prefer-early-returns --reason "Not a real preference"
+agentbrief compile
 ```
 
-Accepting writes a `## Learned:` section into the source file and moves the proposal to `inbox/accepted/`. Rejecting moves it to `inbox/rejected/` and does not touch the source. Personal and stack proposals live in `~/.brief/inbox/`. Project proposals live in `.brief/inbox/`, which `agentbrief ` adds to `.gitignore`.
+Accepting writes a `## Learned:` section into the source file and moves the proposal to `inbox/accepted/`. Rejecting moves it to `inbox/rejected/` and does not touch the source. Personal and stack proposals live in `~/.brief/inbox/`. Project proposals live in `.brief/inbox/`, which `agentbrief init` adds to `.gitignore`.
 
-Tell an agent to run `agentbrief ` instead of editing `AGENTS.md`. The generated file says the same thing.
+Tell an agent to run `agentbrief propose` instead of editing `AGENTS.md`. The generated file says the same thing.
 
 ## Sync
 
-`~/.brief` is a git repository from the moment `agentbrief ` creates it. `agentbrief ` commits local edits. With a remote it fetches, rebases, and pushes. It does not force-push. If the rebase conflicts, brief aborts the rebase, leaves your commit in place, and stops.
+`~/.brief` is a git repository from the moment `agentbrief init` creates it. `agentbrief sync` commits local edits. With a remote it fetches, rebases, and pushes. It does not force-push. If the rebase conflicts, agentbrief aborts the rebase, leaves your commit in place, and stops.
 
 ```bash
 agentbrief sync --remote git@github.com:you/agentbrief-personal.git
 agentbrief sync
 ```
 
-The remote is your personal methodology. Do not put secrets in it. Project instructions stay in the project's own git history; `agentbrief ` does not push those.
+The remote is your personal methodology. Do not put secrets in it. Project instructions stay in the project's own git history; `agentbrief sync` does not push those.
 
-On a new machine, clone that repo to `~/.brief`, or set `BRIEF_HOME`, then run `agentbrief ` so the global tool files exist.
+On a new machine, clone that repo to `~/.brief`, or set `BRIEF_HOME`, then run `agentbrief compile` so the global tool files exist.
 
 ## Example
 
@@ -293,7 +293,7 @@ The source starts like this:
 I am Ada. I build software by shipping a thin working slice and then tightening it.
 ```
 
-`agentbrief ` turns the layers into `examples/sample-app/AGENTS.md` (and the other native files). The top of that file:
+`agentbrief compile` turns the layers into `examples/sample-app/AGENTS.md` (and the other native files). The top of that file:
 
 ```markdown
 <!-- brief:generated target=agents variant=full composition=full hash=… -->
@@ -310,15 +310,15 @@ To recompile the sample against that personal layer, instead of whatever is in y
 ```bash
 export BRIEF_HOME="$PWD/examples/home"
 cd examples/sample-app
-agentbrief  --project
+agentbrief check --project
 ```
 
 ## Does it help?
 
-[evals/README.md](evals/README.md) describes the stub. `agentbrief ` records the task once alone and once with the compiled brief, writes both prompts and a token estimate, and sets `model_output` to `null`. It does not call a model and it does not invent a score.
+[evals/README.md](evals/README.md) describes the stub. `agentbrief eval` records the task once alone and once with the compiled brief, writes both prompts and a token estimate, and sets `model_output` to `null`. It does not call a model and it does not invent a score.
 
 ```bash
-agentbrief  --task evals/tasks/add-health-check.md
+agentbrief eval --task evals/tasks/add-health-check.md
 ```
 
 ## Development
@@ -341,8 +341,8 @@ These are the locations this version does not write, or writes with a caveat, be
 - Copilot instructions that live in GitHub account settings are not a file. `~/.copilot/copilot-instructions.md` is the Copilot CLI path. Which of `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` an editor surface loads varies; the repo-wide file they share is `.github/copilot-instructions.md`.
 - Claude Code, Gemini, and Codex can be pointed at extra filenames in their own settings. brief uses each tool's default.
 - Files an organization manages (`/etc/claude-code/CLAUDE.md`, Copilot organization instructions, `/etc/windsurf/rules/`) are not touched.
-- Gemini's `/memory add` and Claude's auto memory rewrite their own stores. If they rewrite a file brief generated, `agentbrief ` reports drift instead of quietly merging it back.
-- `agentbrief ` is `git pull --rebase` and `git push`. A conflict stops the command. There is no force-push and no three-way merge of two people's methodology beyond what git already does.
+- Gemini's `/memory add` and Claude's auto memory rewrite their own stores. If they rewrite a file agentbrief generated, `agentbrief check` reports drift and `agentbrief capture` can turn those additions into inbox proposals.
+- `agentbrief sync` is `git pull --rebase` and `git push`. A conflict stops the command. There is no force-push and no three-way merge of two people's methodology beyond what git already does.
 
 ## License
 
