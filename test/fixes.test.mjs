@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { lstat, mkdir, readlink, symlink } from "node:fs/promises";
+import { lstat, mkdir, readlink, realpath, symlink } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { captureEdits } from "../dist/capture.js";
@@ -300,7 +300,7 @@ test("the hook fails the commit on error and follows core.hooksPath and worktree
     git(workspace.cwd, ["init", "-q"]);
     git(workspace.cwd, ["config", "core.hooksPath", ".husky"]);
     const res = await installHook(workspace.cwd, "check");
-    assert.equal(path.resolve(res.file), path.join(workspace.cwd, ".husky", "pre-commit"));
+    assert.equal(await realpath(res.file), path.join(await realpath(workspace.cwd), ".husky", "pre-commit"));
     const hook = await read(res.file);
     assert.match(hook, /agentbrief check --project \|\| exit 1/);
 
@@ -314,7 +314,8 @@ test("the hook fails the commit on error and follows core.hooksPath and worktree
     git(repo, ["worktree", "add", "-q", tree]);
     const inTree = await installHook(tree, "compile");
     assert.match(await read(inTree.file), /agentbrief compile --project --stage \|\| exit 1/);
-    assert.ok(inTree.file.startsWith(path.join(repo, ".git")));
+    // git prints the resolved path; on macOS the temp dir sits under the /var -> /private/var link.
+    assert.ok((await realpath(inTree.file)).startsWith(path.join(await realpath(repo), ".git")));
   } finally {
     await workspace.cleanup();
   }
