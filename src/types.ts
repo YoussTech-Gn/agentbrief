@@ -45,6 +45,8 @@ export interface BriefConfig {
   packageManager?: string;
   framework?: string;
   targets: Record<TargetId, boolean>;
+  /** Targets a brief.toml sets to false. No profile or flag turns them back on. */
+  explicitOff: TargetId[];
   budgetFull: number;
   budgetShort: number;
   charsPerToken: number;

@@ -2,7 +2,7 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { budgetFor } from "./config.js";
 import { fileHash, isScopedKey, manifestFile, planCompilation, readManifest, type Manifest } from "./compile.js";
-import { commandScript, declarationsFrom, detectProject } from "./detect.js";
+import { commandScript, declarationsFrom, detectProject, KNOWN_FRAMEWORKS } from "./detect.js";
 import { hashInner, parseRegion } from "./markers.js";
 import { SESSIONS, TARGETS, toolHomes } from "./targets.js";
 import type { CheckReport, CompileOptions, Finding, Scope, SessionEstimate } from "./types.js";
@@ -185,11 +185,17 @@ async function codeFindings(
       message: `Framework is declared more than once and the values differ: ${declared.frameworks.join(", ")}.`,
     });
   } else if (declared.frameworks.length === 1) {
-    const wanted = declared.frameworks[0] ?? "";
+    const wanted = (declared.frameworks[0] ?? "").toLowerCase();
     const hasManifest = ["package.json", "pyproject.toml", "go.mod", "Cargo.toml"].some((file) =>
       facts.files.includes(file),
     );
-    if (hasManifest && !facts.frameworks.includes(wanted)) {
+    if (!KNOWN_FRAMEWORKS.includes(wanted)) {
+      findings.push({
+        severity: "warning",
+        code: "framework",
+        message: `Brief declares framework "${declared.frameworks[0]}", which agentbrief cannot detect, so it was not checked. Known: ${KNOWN_FRAMEWORKS.join(", ")}.`,
+      });
+    } else if (hasManifest && !facts.frameworks.includes(wanted)) {
       const found = facts.frameworks.length > 0 ? facts.frameworks.join(", ") : "nothing recognizable";
       findings.push({
         severity: "error",
@@ -228,7 +234,20 @@ async function codeFindings(
         severity: "error",
         code: "path",
         path: rel,
-        message: `Referenced path \`${rel}\` does not exist.`,
+        message: `Declared path \`${rel}\` does not exist.`,
+      });
+    }
+  }
+  // Backtick text in prose is a guess: `feat/login` may be a branch and
+  // `application/json` a media type. Report it, but do not block a commit.
+  for (const rel of declared.mentionedPaths) {
+    const info = await stat(path.resolve(cwd, rel)).catch(() => null);
+    if (!info) {
+      findings.push({
+        severity: "warning",
+        code: "path",
+        path: rel,
+        message: `\`${rel}\` looks like a path but does not exist. If it is a path, fix it; if not, ignore this.`,
       });
     }
   }

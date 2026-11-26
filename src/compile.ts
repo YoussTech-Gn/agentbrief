@@ -129,10 +129,15 @@ export async function planCompilation(options: CompileOptions): Promise<Plan> {
   const missingStacks: string[] = [];
   const plans: PlannedFile[] = [];
   for (const scope of scopes) {
-    const { docs: stackDocs, missing } = selectStacks(layers, scope, facts.stacks);
+    const { docs: stackDocs, missing, undetected } = selectStacks(layers, scope, facts.stacks);
     missingStacks.push(...missing);
     for (const id of missing) {
       warnings.push(`Stack "${id}" is selected but ~/.brief/stacks/${id}.md does not exist.`);
+    }
+    for (const id of undetected) {
+      warnings.push(
+        `Detected a ${id} project, but ~/.brief/stacks/${id}.md does not exist, so no ${id} rules were added. Run \`agentbrief init --global\` to create it.`,
+      );
     }
     const inner = renderBrief({
       variant: config.variant,
@@ -339,7 +344,7 @@ async function applyPlan(plan: PlannedFile, options: CompileOptions, previous: M
   await writeText(plan.absPath, next);
   return {
     ...base,
-    status: clean ? "wrote" : "wrote",
+    status: "wrote",
     reason: clean ? undefined : "replaced a hand-edited generated region after writing a backup",
     backup,
   };
@@ -396,25 +401,33 @@ function selectStacks(
   layers: LayerSet,
   scope: Scope,
   detected: string[],
-): { docs: SourceDoc[]; missing: string[] } {
+): { docs: SourceDoc[]; missing: string[]; undetected: string[] } {
   const available = new Map(layers.stacks.map((doc) => [doc.stackId ?? "", doc]));
-  let ids: string[];
+  const globalIds = layers.stacks.filter(isGlobalStack).map((doc) => doc.stackId ?? "");
+  // Stacks the user named in brief.toml must exist. Stacks the repo merely
+  // looks like are optional: without a stack file there is nothing to add.
+  let declared: string[];
+  let inferred: string[] = [];
   if (scope === "global") {
-    ids = layers.globalStacks ?? layers.stacks.filter(isGlobalStack).map((doc) => doc.stackId ?? "");
+    declared = layers.globalStacks ?? [];
+    if (!layers.globalStacks) inferred = globalIds;
   } else if (layers.projectStacks) {
-    ids = layers.projectStacks;
+    declared = layers.projectStacks;
   } else {
-    ids = unique([...detected, ...layers.stacks.filter(isGlobalStack).map((doc) => doc.stackId ?? "")]);
+    declared = [];
+    inferred = unique([...detected, ...globalIds]);
   }
   const docs: SourceDoc[] = [];
   const missing: string[] = [];
-  for (const id of ids) {
+  const undetected: string[] = [];
+  for (const id of unique([...declared, ...inferred])) {
     if (!id) continue;
     const doc = available.get(id);
-    if (!doc) missing.push(id);
-    else docs.push(doc);
+    if (doc) docs.push(doc);
+    else if (declared.includes(id)) missing.push(id);
+    else undetected.push(id);
   }
-  return { docs, missing };
+  return { docs, missing, undetected };
 }
 
 async function outputPath(options: CompileOptions, spec: TargetSpec, scope: Scope): Promise<string | null> {

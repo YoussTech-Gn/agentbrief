@@ -60,7 +60,7 @@ Three layers, top to bottom. Later layers are more specific. They are concatenat
 
 `BRIEF_HOME` overrides `~/.brief` when you want a brief somewhere else.
 
-Every source file is markdown with a small front matter block:
+Every source file is markdown with a small front matter block. It accepts `key: value`, quoted strings, numbers, booleans, and lists written as `[a, b]` or as `  - item` lines. Anything else (nested maps, `|` blocks) stops compilation with the file and line, rather than being misread. `brief.toml` works the same way: strings in double quotes, numbers, booleans, string arrays on one line or several, and `[tables]`.
 
 ```markdown
 ---
@@ -108,7 +108,7 @@ The longer explanation. `agentbrief compile --variant short` drops this.
 Global tool files never include the project layer. Project files are selected like this:
 
 - `stacks = ["typescript"]` in `.brief/brief.toml` uses those stack files.
-- If `stacks` is omitted, brief uses stacks it can detect (`tsconfig.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`) plus any stack file marked `global: true`.
+- If `stacks` is omitted, brief uses stacks it can detect (`tsconfig.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`) plus any stack file marked `global: true`. A detected stack with no file in `~/.brief/stacks/` is skipped with a note; a stack you name in `stacks` with no file is a `check` error.
 - `stacks = []` includes none.
 
 ## Commands
@@ -119,7 +119,7 @@ Global tool files never include the project layer. Project files are selected li
 | `agentbrief compile` | Write the native files (including path-scoped rules). `agentbrief build` is the same command. `--dry-run` prints the plan. `--force` replaces a generated region you edited by hand, after a backup. `--lean` writes only the files a tool would not otherwise load a second time. |
 | `agentbrief check` | Exit 1 when a generated file is missing, stale, or hand-edited, or when a declared command, path, package manager, or framework does not match the repo. Budget and overlap problems are warnings unless you pass `--strict`. |
 | `agentbrief capture` | Inspect compiled files for edits made by hand or by tool memory (e.g. Claude auto-memory, Gemini `/memory add`) and turn added lines into pending inbox proposals. Pass `--include-outside` to also capture text outside markers. |
-| `agentbrief hook` | `agentbrief hook install [--mode check|compile]` installs an idempotent git `pre-commit` hook; `agentbrief hook uninstall` removes it; `agentbrief hook ci` writes `.github/workflows/agentbrief.yml`. |
+| `agentbrief hook` | `agentbrief hook install [--mode check|compile]` installs an idempotent git `pre-commit` hook that fails the commit when the command fails. It follows `core.hooksPath` (husky) and works in worktrees. Compile mode runs `agentbrief compile --project --stage`, which `git add`s the files it regenerated. `agentbrief hook uninstall` removes it; `agentbrief hook ci` writes `.github/workflows/agentbrief.yml`, pinned to the installed version. |
 | `agentbrief mcp` | Start a zero-dependency stdio MCP server exposing `get_brief`, `get_rules_for_path`, `propose_rule`, `list_proposals`, and `check_brief` to MCP-compatible coding agents. |
 | `agentbrief propose` | Append a suggestion to the inbox. Does not edit the source. |
 | `agentbrief review` | Accept or reject pending suggestions. `--accept <id>`, `--accept all`, `--reject <id>`. In a terminal with no flags, it asks one at a time. |
@@ -145,7 +145,7 @@ Always validate request payloads with zod.
 
 The manifest records the entire generated scoped file, including its path filters. Recompiling updates an untouched file when its glob changes and removes an untouched rule when its source disappears. Locally edited files and obsolete files from older manifests are retained for review. Run `agentbrief compile --dry-run` to preview removal. Conflicting source names that resolve to the same output stop compilation.
 
-Repeated rendered sections appear once per brief. The native profile still generates separate files for tools that need them. Managed text reads and writes reject symbolic links and Windows junctions in their path. Use physical paths for the project, brief, and tool directories.
+Repeated rendered sections appear once per brief. The native profile still generates separate files for tools that need them. Inside the project, reads and writes refuse symbolic links and Windows junctions, so a cloned repository cannot point `AGENTS.md` at a file elsewhere on your machine. Outside the project, links are followed: a dotfiles-managed `~/.claude` works, and a linked file such as `~/.gemini/GEMINI.md` is written through, so the link stays in place.
 
 ### MCP server (`agentbrief mcp`)
 
@@ -207,7 +207,7 @@ Several tools read more than one of these files. `agentbrief check` prints the s
 | Windsurf | `~/.codeium/windsurf/memories/global_rules.md`, `.windsurf/rules/*.md`, and root `AGENTS.md`. |
 | Grok Build | `~/.grok/`, then `AGENTS.md`, `CLAUDE.md`, and `.grok/rules/*.md`. |
 
-`agentbrief init --lean`, or `profile = "lean"`, turns off the Cursor, Windsurf, and Grok copies, because those tools also read `AGENTS.md` or `CLAUDE.md`. Claude, Gemini, Copilot, and Codex stay on: each of them has a file the others do not reliably read. `--native` turns every target back on for one run.
+`agentbrief init --lean`, or `profile = "lean"`, turns off the Cursor, Windsurf, and Grok copies, because those tools also read `AGENTS.md` or `CLAUDE.md`. Claude, Gemini, Copilot, and Codex stay on: each of them has a file the others do not reliably read. `--native` turns the lean targets back on for one run. A target set to `false` in `brief.toml` stays off: delete the line to let the profile decide.
 
 Turn a single target off in `brief.toml`:
 
@@ -244,9 +244,10 @@ It also checks the project layer, not the personal one, against the repository:
 
 - `npm run`, `pnpm run`, `yarn run`, and `bun run` names against `package.json` scripts.
 - `make <target>` against a Makefile, when one exists.
-- `paths:` entries, and backtick paths in the project markdown, against the tree.
+- `paths:` entries against the tree. A missing one is an error.
+- Backtick spans in the project markdown that look like paths (`src/app.ts`). A missing one is a warning, because `feat/login` may be a branch and `application/json` a media type.
 - `package_manager` against the lockfile or the `packageManager` field.
-- `framework` against dependencies in `package.json` or `pyproject.toml` (`next`, `react`, `vue`, `svelte`, `angular`, `express`, `fastify`, `vite`, `django`, `fastapi`, `flask`).
+- `framework` against dependencies in `package.json` or `pyproject.toml` (`next`, `react`, `vue`, `svelte`, `angular`, `express`, `fastify`, `vite`, `django`, `fastapi`, `flask`). Any other framework is reported as a warning that it could not be checked.
 
 A personal note that mentions `src/app.ts` is not checked. That path belongs to one repo, and the personal layer is used in all of them.
 

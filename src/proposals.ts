@@ -2,7 +2,7 @@ import { readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { parseFrontMatter, stringifyDocument } from "./frontmatter.js";
 import type { LayerName, Proposal } from "./types.js";
-import { assertUnlinked, readText, resolveInside, slug, stamp, writeText } from "./util.js";
+import { assertUnlinked, guardRoot, readText, resolveInside, slug, stamp, writeText } from "./util.js";
 
 export interface ProposeInput {
   cwd: string;
@@ -16,6 +16,7 @@ export interface ProposeInput {
 }
 
 export async function proposeChange(input: ProposeInput): Promise<Proposal> {
+  guardRoot(input.cwd);
   const title = input.title.trim();
   const body = input.body.trim();
   if (!title) throw new Error("A proposal needs a --title.");
@@ -35,17 +36,42 @@ export async function proposeChange(input: ProposeInput): Promise<Proposal> {
   // Touch the destination now so a bad path fails before we write the inbox.
   await assertUnlinked(targetPath(input.cwd, input.briefHome, proposal));
   const inbox = inboxDir(input.cwd, input.briefHome, proposal.layer);
+  // Same title in the same second would reuse the id and overwrite the first.
+  const baseId = proposal.id;
+  for (let n = 2; await idTaken(inbox, proposal.id); n += 1) proposal.id = `${baseId}-${n}`;
   proposal.absPath = path.join(inbox, `${proposal.id}.md`);
   await writeText(proposal.absPath, serialize(proposal));
   return proposal;
 }
 
 export async function listPending(cwd: string, briefHome: string): Promise<Proposal[]> {
+  guardRoot(cwd);
   const dirs = [path.join(briefHome, "inbox"), path.join(cwd, ".brief", "inbox")];
   const found: Proposal[] = [];
   for (const dir of dirs) found.push(...(await readPending(dir)));
   found.sort((a, b) => a.created.localeCompare(b.created));
   return found;
+}
+
+/** Bodies of proposals already accepted, so capture does not offer them again. */
+export async function listAcceptedBodies(cwd: string, briefHome: string): Promise<string[]> {
+  guardRoot(cwd);
+  const dirs = [path.join(briefHome, "inbox", "accepted"), path.join(cwd, ".brief", "inbox", "accepted")];
+  const bodies: string[] = [];
+  for (const dir of dirs) {
+    let names: string[] = [];
+    try {
+      names = await readdir(dir);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (!name.endsWith(".md")) continue;
+      const text = await readText(path.join(dir, name));
+      if (text) bodies.push(parseFrontMatter(text).body.trim());
+    }
+  }
+  return bodies;
 }
 
 export async function acceptProposal(cwd: string, briefHome: string, id: string): Promise<Proposal> {
@@ -125,6 +151,13 @@ async function readPending(dir: string): Promise<Proposal[]> {
     });
   }
   return proposals;
+}
+
+async function idTaken(inbox: string, id: string): Promise<boolean> {
+  for (const dir of [inbox, path.join(inbox, "accepted"), path.join(inbox, "rejected")]) {
+    if (await stat(path.join(dir, `${id}.md`)).catch(() => null)) return true;
+  }
+  return false;
 }
 
 function serialize(proposal: Proposal): string {

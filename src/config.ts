@@ -16,6 +16,7 @@ export function baseConfig(): BriefConfig {
     profile: "native",
     stacks: null,
     targets,
+    explicitOff: [],
     budgetFull: 4000,
     budgetShort: 1500,
     charsPerToken: 4,
@@ -26,7 +27,11 @@ export function baseConfig(): BriefConfig {
 export async function loadConfigFile(file: string): Promise<Partial<BriefConfig> & { stacksSpecified: boolean }> {
   const text = await readText(file);
   if (text === null) return { stacksSpecified: false };
-  return configFromToml(parseToml(text));
+  try {
+    return configFromToml(parseToml(text));
+  } catch (error) {
+    throw new Error(`${file}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export function configFromToml(toml: Toml): Partial<BriefConfig> & { stacksSpecified: boolean } {
@@ -85,11 +90,9 @@ export function configFromToml(toml: Toml): Partial<BriefConfig> & { stacksSpeci
 export function mergeConfig(global: Partial<BriefConfig>, project: Partial<BriefConfig>): BriefConfig {
   const base = baseConfig();
   const profile = project.profile ?? global.profile ?? base.profile;
-  const targets = {
-    ...base.targets,
-    ...(global.targets ?? {}),
-    ...(project.targets ?? {}),
-  };
+  const explicit: Partial<Record<TargetId, boolean>> = { ...(global.targets ?? {}), ...(project.targets ?? {}) };
+  const targets = { ...base.targets, ...explicit };
+  const explicitOff = TARGET_IDS.filter((id) => explicit[id] === false);
   return {
     version: project.version ?? global.version ?? base.version,
     variant: project.variant ?? global.variant ?? base.variant,
@@ -99,6 +102,7 @@ export function mergeConfig(global: Partial<BriefConfig>, project: Partial<Brief
     packageManager: project.packageManager ?? global.packageManager,
     framework: project.framework ?? global.framework,
     targets,
+    explicitOff,
     budgetFull: project.budgetFull ?? global.budgetFull ?? base.budgetFull,
     budgetShort: project.budgetShort ?? global.budgetShort ?? base.budgetShort,
     charsPerToken: project.charsPerToken ?? global.charsPerToken ?? base.charsPerToken,
@@ -109,8 +113,9 @@ export function mergeConfig(global: Partial<BriefConfig>, project: Partial<Brief
 
 export function applyProfile(config: BriefConfig, override: Profile | undefined): BriefConfig {
   if (override === "native") {
+    // Undo what the lean profile turned off, not what the user turned off.
     const targets = { ...config.targets };
-    for (const id of TARGET_IDS) targets[id] = true;
+    for (const id of TARGET_IDS) targets[id] = !config.explicitOff.includes(id);
     return { ...config, profile: "native", targets };
   }
   if (override === "lean" || config.profile === "lean") {

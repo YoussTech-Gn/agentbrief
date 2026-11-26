@@ -350,17 +350,20 @@ Add the longer explanation here. \`agentbrief compile --variant short\` drops ev
 }
 
 function targetTable(profile: "native" | "lean"): string {
-  const off = profile === "lean";
-  const row = (name: string, enabled: boolean) => `${name} = ${enabled ? "true" : "false"}\n`;
+  const lean = profile === "lean";
+  const row = (name: string) => `${name} = true\n`;
+  // Under the lean profile these stay unset so the profile decides and
+  // --native can still turn them on. A line set to false always wins.
+  const leanRow = (name: string) => (lean ? `# ${name}: off under profile = "lean"\n` : row(name));
   return (
     "[targets]\n" +
-    row("claude", true) +
-    row("agents", true) +
-    row("gemini", true) +
-    row("cursor", !off) +
-    row("copilot", true) +
-    row("windsurf", !off) +
-    row("codex", true) +
-    row("grok", !off)
+    row("claude") +
+    row("agents") +
+    row("gemini") +
+    leanRow("cursor") +
+    row("copilot") +
+    leanRow("windsurf") +
+    row("codex") +
+    leanRow("grok")
   );
 }

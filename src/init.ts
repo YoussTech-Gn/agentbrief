@@ -16,7 +16,7 @@ import {
   type TemplateContext,
 } from "./templates.js";
 import type { Profile } from "./types.js";
-import { assertUnlinked, readText, writeText } from "./util.js";
+import { assertUnlinked, guardRoot, readText, writeText } from "./util.js";
 
 const FRAMEWORK_PRIORITY = [
   "next",
@@ -54,6 +54,7 @@ export interface InitResult {
 }
 
 export async function initBrief(options: InitOptions): Promise<InitResult> {
+  guardRoot(options.cwd);
   const doGlobal = options.global || !options.project;
   const doProject = options.project || !options.global;
   const facts = await detectProject(options.cwd);
@@ -105,7 +106,14 @@ export async function initBrief(options: InitOptions): Promise<InitResult> {
     messages.push(`Personal brief: ${options.briefHome}`);
   }
   if (doProject) {
-    await writeProject(options.cwd, ctx, created, kept);
+    // Only name stacks whose file exists. A declared stack with no file is a
+    // check error, so naming one that init did not create would fail at once.
+    const projectStacks: string[] = [];
+    for (const id of ctx.stacks) {
+      const file = path.join(options.briefHome, "stacks", `${id}.md`);
+      if ((await stat(file).catch(() => null))?.isFile()) projectStacks.push(id);
+    }
+    await writeProject(options.cwd, { ...ctx, stacks: projectStacks }, created, kept);
     await ensureProjectGitignore(options.cwd);
     messages.push(`Project brief: ${path.join(options.cwd, ".brief")}`);
   }

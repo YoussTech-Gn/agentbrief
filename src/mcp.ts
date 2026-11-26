@@ -228,12 +228,11 @@ async function callTool(
         args["layer"] === "personal" || args["layer"] === "stack" || args["layer"] === "project"
           ? args["layer"]
           : "project";
-      const file =
-        typeof args["file"] === "string" && args["file"].trim()
-          ? args["file"].trim()
-          : layer === "project"
-            ? "project.md"
-            : "preferences.md";
+      const given = typeof args["file"] === "string" ? args["file"].trim() : "";
+      if (!given && layer === "stack") {
+        throw new Error("A stack proposal needs `file`, the stack id (for example typescript).");
+      }
+      const file = given || (layer === "project" ? "project.md" : "preferences.md");
       const action = args["action"] === "prepend" ? "prepend" : "append";
       const proposal = await proposeChange({
         cwd: ctx.cwd,
