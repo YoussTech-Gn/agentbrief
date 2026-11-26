@@ -105,7 +105,22 @@ test("backtick spans found in prose are warnings, declared paths stay errors", a
 });
 
 // 3 ─ Symbolic links: trusted outside the project, refused inside it.
-test("a symlinked tool home outside the project is followed, and the link survives", async () => {
+// Windows only lets admins or Developer Mode create *file* symlinks (EPERM otherwise).
+// Directory junctions need no privilege, so only the file links can skip.
+async function fileSymlinkOrSkip(t, target, link) {
+  try {
+    await symlink(target, link, "file");
+    return true;
+  } catch (error) {
+    if (process.platform === "win32" && error.code === "EPERM") {
+      t.skip("creating file symlinks on Windows needs Developer Mode or an admin shell");
+      return false;
+    }
+    throw error;
+  }
+}
+
+test("a symlinked tool home outside the project is followed, and the link survives", async (t) => {
   const workspace = await makeWorkspace();
   try {
     await write(path.join(workspace.briefHome, "preferences.md"), "# Preferences\n\nKeep it small.\n");
@@ -116,7 +131,7 @@ test("a symlinked tool home outside the project is followed, and the link surviv
     const geminiReal = path.join(workspace.root, "dotfiles", "GEMINI.md");
     await write(geminiReal, "");
     await mkdir(path.join(workspace.userHome, ".gemini"), { recursive: true });
-    await symlink(geminiReal, path.join(workspace.userHome, ".gemini", "GEMINI.md"));
+    if (!(await fileSymlinkOrSkip(t, geminiReal, path.join(workspace.userHome, ".gemini", "GEMINI.md")))) return;
     const report = await compileBrief(compileOptions(workspace, { scopes: ["global"] }));
     assert.equal(report.files.some((file) => file.status === "skipped"), false);
     assert.match(await read(path.join(dotfiles, "CLAUDE.md")), /Keep it small/);
@@ -128,14 +143,14 @@ test("a symlinked tool home outside the project is followed, and the link surviv
   }
 });
 
-test("a project file linked to a file outside the repo is refused", async () => {
+test("a project file linked to a file outside the repo is refused", async (t) => {
   const workspace = await makeWorkspace();
   try {
     await write(path.join(workspace.cwd, ".brief", "brief.toml"), ONLY_AGENTS);
     await write(path.join(workspace.cwd, ".brief", "project.md"), "# Project\n\nOne module.\n");
     const secret = path.join(workspace.root, "secret.txt");
     await write(secret, "TOP SECRET\n");
-    await symlink(secret, path.join(workspace.cwd, "AGENTS.md"));
+    if (!(await fileSymlinkOrSkip(t, secret, path.join(workspace.cwd, "AGENTS.md")))) return;
     await assert.rejects(compileBrief(compileOptions(workspace, { scopes: ["project"] })), /symbolic link/);
     assert.equal(await read(secret), "TOP SECRET\n");
   } finally {
