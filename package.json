@@ -27,7 +27,7 @@
   "scripts": {
     "build": "tsc && node -e \"if(process.platform!=='win32')require('fs').chmodSync('dist/cli.js',0o755)\"",
     "prepare": "tsc && node -e \"if(process.platform!=='win32')require('fs').chmodSync('dist/cli.js',0o755)\"",
-    "test": "npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && node scripts/run-tests.mjs",
     "agentbrief": "node dist/cli.js"
   },
   "devDependencies": {
