@@ -1,0 +1,3 @@
+# Keep LF everywhere, including checkouts on Windows, so a release packed on
+# any machine ships the same bytes as the repository.
+* text=auto eol=lf

@@ -1,6 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { chmod, stat } from "node:fs/promises";
 import path from "node:path";
-import { readText, writeText } from "./util.js";
+import { guardRoot, readText, writeText } from "./util.js";
 
 const BEGIN_MARK = "# agentbrief:hook:begin";
 const END_MARK = "# agentbrief:hook:end";
@@ -18,12 +19,8 @@ export interface HookResult {
  * recompiles the project brief before commits.
  */
 export async function installHook(cwd: string, mode: HookMode = "check"): Promise<HookResult> {
-  const gitDir = path.join(cwd, ".git");
-  const info = await stat(gitDir).catch(() => null);
-  if (!info?.isDirectory()) {
-    throw new Error(`No .git directory found in ${cwd}. Run \`git init\` first.`);
-  }
-  const hookFile = path.join(gitDir, "hooks", "pre-commit");
+  guardRoot(cwd);
+  const hookFile = path.join(await hooksDir(cwd), "pre-commit");
   const existing = await readText(hookFile);
   const block = renderHookBlock(mode);
 
@@ -56,9 +53,34 @@ export async function installHook(cwd: string, mode: HookMode = "check"): Promis
   };
 }
 
+/**
+ * Where git runs hooks from. `git rev-parse --git-path hooks` follows
+ * `core.hooksPath` (husky) and resolves worktrees and submodules, whose
+ * `.git` is a file. Without git, fall back to a plain `.git/hooks`.
+ */
+async function hooksDir(cwd: string): Promise<string> {
+  try {
+    const out = execFileSync("git", ["rev-parse", "--git-path", "hooks"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (out) return path.resolve(cwd, out);
+  } catch {
+    /* not a repository, or git is missing */
+  }
+  const gitDir = path.join(cwd, ".git");
+  const info = await stat(gitDir).catch(() => null);
+  if (!info?.isDirectory()) {
+    throw new Error(`No git repository found in ${cwd}. Run \`git init\` first.`);
+  }
+  return path.join(gitDir, "hooks");
+}
+
 /** Remove the agentbrief block from `.git/hooks/pre-commit`, preserving user lines. */
 export async function uninstallHook(cwd: string): Promise<HookResult> {
-  const hookFile = path.join(cwd, ".git", "hooks", "pre-commit");
+  guardRoot(cwd);
+  const hookFile = path.join(await hooksDir(cwd), "pre-commit");
   const existing = await readText(hookFile);
   if (!existing || !existing.includes(BEGIN_MARK)) {
     return { action: "unchanged", file: hookFile, message: "No agentbrief pre-commit hook found." };
@@ -69,7 +91,11 @@ export async function uninstallHook(cwd: string): Promise<HookResult> {
 }
 
 /** Write a GitHub Actions workflow that runs `agentbrief check --project --strict`. */
-export async function writeCiWorkflow(cwd: string, force = false): Promise<HookResult> {
+export async function writeCiWorkflow(cwd: string, force = false, version?: string): Promise<HookResult> {
+  guardRoot(cwd);
+  // Pin the version that wrote the workflow, so a new release cannot change
+  // what runs in every repository's CI until its owner upgrades on purpose.
+  const spec = version ? `@coddrex/agentbrief@${version}` : "@coddrex/agentbrief";
   const file = path.join(cwd, ".github", "workflows", "agentbrief.yml");
   const existing = await readText(file);
   if (existing !== null && !force) {
@@ -94,7 +120,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npx --yes @coddrex/agentbrief check --project --strict
+      - run: npx --yes ${spec} check --project --strict
 `;
   await writeText(file, contents);
   return {
@@ -105,14 +131,18 @@ jobs:
 }
 
 function renderHookBlock(mode: HookMode): string {
+  // compile mode stages what it regenerated, so the commit carries it.
   const cmd =
     mode === "compile"
-      ? "agentbrief compile --project"
+      ? "agentbrief compile --project --stage"
       : "agentbrief check --project";
+  // `|| exit 1` fails the commit even when user lines follow this block.
   return [
     BEGIN_MARK,
     "if command -v agentbrief >/dev/null 2>&1; then",
-    `  ${cmd}`,
+    `  ${cmd} || exit 1`,
+    "else",
+    '  echo "agentbrief is not installed; skipping the brief check." >&2',
     "fi",
     END_MARK,
   ].join("\n");

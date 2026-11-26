@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { parseArgs } from "node:util";
 import os from "node:os";
@@ -15,8 +17,8 @@ import { serveMcp } from "./mcp.js";
 import { checkFailed, formatCheck, formatCompile } from "./print.js";
 import { acceptProposal, listPending, proposeChange, rejectProposal } from "./proposals.js";
 import { syncBrief } from "./sync.js";
-import type { LayerName, Profile, Scope, Variant } from "./types.js";
-import { readText } from "./util.js";
+import type { CompileReport, LayerName, Profile, Scope, Variant } from "./types.js";
+import { readText, toPosix } from "./util.js";
 import { watchBrief } from "./watch.js";
 
 const require = createRequire(import.meta.url);
@@ -28,7 +30,7 @@ Install globally with \`npm install -g @coddrex/agentbrief\` (or \`npm install -
 
 Usage
   agentbrief init [--global] [--project] [--yes] [--lean]
-  agentbrief compile [--global] [--project] [--variant short|full] [--lean|--native] [--force] [--dry-run]
+  agentbrief compile [--global] [--project] [--variant short|full] [--lean|--native] [--force] [--dry-run] [--stage]
   agentbrief check [--global] [--project] [--strict] [--variant short|full]
   agentbrief capture [--global] [--project] [--include-outside]
   agentbrief hook <install|uninstall|ci> [--mode check|compile] [--force]
@@ -56,6 +58,7 @@ async function main(): Promise<void> {
       project: { type: "boolean", short: "p", default: false },
       force: { type: "boolean", short: "f", default: false },
       "dry-run": { type: "boolean", default: false },
+      stage: { type: "boolean", default: false },
       strict: { type: "boolean", default: false },
       lean: { type: "boolean", default: false },
       native: { type: "boolean", default: false },
@@ -125,6 +128,10 @@ async function main(): Promise<void> {
       const report = await compileBrief(base);
       console.log(formatCompile(report));
       if (report.files.some((file) => file.status === "skipped")) process.exitCode = 1;
+      if (values.stage && !values["dry-run"]) {
+        const staged = stageProjectFiles(cwd, report);
+        if (staged.length > 0) console.log(`staged   ${staged.join(", ")}`);
+      }
       return;
     }
     case "check": {
@@ -165,7 +172,7 @@ async function main(): Promise<void> {
         return;
       }
       if (sub === "ci") {
-        const res = await writeCiWorkflow(cwd, values.force);
+        const res = await writeCiWorkflow(cwd, values.force, pkg.version);
         console.log(`${res.action.padEnd(9, " ")} ${res.message}`);
         return;
       }
@@ -254,6 +261,22 @@ async function main(): Promise<void> {
     default:
       throw new Error(`Unknown command "${command}".\n\n${HELP}`);
   }
+}
+
+/**
+ * `git add` the project files this compile wrote, plus the manifest. Used by
+ * the compile-mode pre-commit hook so the commit carries what it regenerated.
+ * Only files agentbrief owns are staged, never the source layers.
+ */
+function stageProjectFiles(cwd: string, report: CompileReport): string[] {
+  const files = report.files
+    .filter((file) => file.scope === "project" && (file.status === "wrote" || file.status === "merged"))
+    .map((file) => file.manifestKey);
+  if (files.length === 0) return [];
+  const manifest = path.join(".brief", "manifest.json");
+  if (existsSync(path.join(cwd, manifest))) files.push(toPosix(manifest));
+  execFileSync("git", ["add", "--", ...files], { cwd, stdio: ["ignore", "ignore", "inherit"] });
+  return files;
 }
 
 function parseVariant(value: string | undefined): Variant | undefined {

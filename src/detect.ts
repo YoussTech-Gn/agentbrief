@@ -60,6 +60,8 @@ const FRAMEWORK_PACKAGES: Record<string, string> = {
   flask: "flask",
 };
 
+export const KNOWN_FRAMEWORKS = Object.keys(FRAMEWORK_PACKAGES);
+
 export async function detectProject(cwd: string): Promise<ProjectFacts> {
   const files = await existing(
     cwd,
@@ -196,7 +198,10 @@ export interface Declaration {
   packageManagers: string[];
   frameworks: string[];
   commands: string[];
+  /** Paths declared in `paths:` front matter. A missing one is an error. */
   paths: string[];
+  /** Backtick spans in prose that look like paths. A missing one is a warning. */
+  mentionedPaths: string[];
   sources: string[];
 }
 
@@ -205,6 +210,7 @@ export function declarationsFrom(configPm: string | undefined, configFramework: 
   const frameworks: string[] = [];
   const commands: string[] = [];
   const paths: string[] = [];
+  const mentionedPaths: string[] = [];
   const sources: string[] = [];
   if (configPm) packageManagers.push(configPm);
   if (configFramework) frameworks.push(configFramework);
@@ -218,7 +224,7 @@ export function declarationsFrom(configPm: string | undefined, configFramework: 
     paths.push(...asStringList(doc.data["paths"]));
     const scanned = scanProjectBody(doc.body);
     commands.push(...scanned.commands);
-    paths.push(...scanned.paths);
+    mentionedPaths.push(...scanned.paths);
     if (pm || framework || scanned.commands.length || scanned.paths.length || asStringList(doc.data["commands"]).length) {
       sources.push(doc.relPath);
     }
@@ -228,6 +234,7 @@ export function declarationsFrom(configPm: string | undefined, configFramework: 
     frameworks: unique(frameworks),
     commands: unique(commands),
     paths: unique(paths),
+    mentionedPaths: unique(mentionedPaths).filter((item) => !paths.includes(item)),
     sources,
   };
 }
@@ -251,6 +258,8 @@ export function scanProjectBody(body: string): { commands: string[]; paths: stri
 export function looksLikePath(span: string): boolean {
   if (!span || span.length > 180 || /\s/.test(span) || span.includes("*") || span.includes("://")) return false;
   if (span.startsWith("-") || span.startsWith("$") || span.startsWith("~")) return false;
+  // `@scope/name` is a package, not a file.
+  if (span.startsWith("@")) return false;
   if (span.includes("/")) return true;
   return /\.(?:ts|tsx|js|jsx|mjs|cjs|py|go|rs|toml|json|yml|yaml|md|sh|css|html)$/.test(span);
 }

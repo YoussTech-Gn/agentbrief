@@ -1,6 +1,6 @@
 import { planCompilation } from "./compile.js";
 import { hashInner, parseRegion, PRESERVED_NOTE } from "./markers.js";
-import { listPending, proposeChange } from "./proposals.js";
+import { listAcceptedBodies, listPending, proposeChange } from "./proposals.js";
 import type { CompileOptions, Proposal } from "./types.js";
 import { normalize, readText } from "./util.js";
 
@@ -22,7 +22,12 @@ export interface CaptureResult {
 export async function captureEdits(options: CaptureOptions): Promise<CaptureResult> {
   const planned = await planCompilation(options);
   const existingPending = await listPending(options.cwd, options.briefHome);
-  const seenBodies = new Set(existingPending.map((item) => normalize(item.body)));
+  const accepted = await listAcceptedBodies(options.cwd, options.briefHome);
+  const known = [...existingPending.map((item) => item.body), ...accepted];
+  const seenBodies = new Set(known.map((body) => normalize(body)));
+  // Lines already proposed or accepted. Text outside the markers stays in the
+  // file after it is accepted, so without this it would be captured forever.
+  const knownLines = new Set(known.flatMap((body) => normalize(body).split("\n").map((line) => line.trim()).filter(Boolean)));
   const created: Proposal[] = [];
   const skipped: Array<{ displayPath: string; reason: string }> = [];
 
@@ -46,7 +51,12 @@ export async function captureEdits(options: CaptureOptions): Promise<CaptureResu
     }
 
     if (options.includeOutside && region.postamble.trim()) {
-      const cleanedOutside = region.postamble.replace(PRESERVED_NOTE, "").trim();
+      const cleanedOutside = region.postamble
+        .replace(PRESERVED_NOTE, "")
+        .split("\n")
+        .filter((line) => !knownLines.has(line.trim()))
+        .join("\n")
+        .trim();
       if (cleanedOutside) addedParts.push(cleanedOutside);
     }
 

@@ -3,7 +3,7 @@ import path from "node:path";
 import { loadConfigFile, mergeConfig } from "./config.js";
 import { parseFrontMatter } from "./frontmatter.js";
 import type { BriefConfig, SourceDoc } from "./types.js";
-import { asBool, readText, toPosix } from "./util.js";
+import { asBool, guardRoot, readText, toPosix } from "./util.js";
 
 export interface LayerSet {
   config: BriefConfig;
@@ -17,6 +17,7 @@ export interface LayerSet {
 }
 
 export async function loadLayers(cwd: string, briefHome: string): Promise<LayerSet> {
+  guardRoot(cwd);
   const globalLoaded = await loadConfigFile(path.join(briefHome, "brief.toml"));
   const projectLoaded = await loadConfigFile(path.join(cwd, ".brief", "brief.toml"));
   const { stacksSpecified: globalSpecified, ...globalPartial } = globalLoaded;
@@ -66,7 +67,12 @@ async function readDocs(
     if (!info?.isFile()) continue;
     const text = await readText(absPath);
     if (text === null) continue;
-    const parsed = parseFrontMatter(text);
+    let parsed: ReturnType<typeof parseFrontMatter>;
+    try {
+      parsed = parseFrontMatter(text);
+    } catch (error) {
+      throw new Error(`${absPath}: ${error instanceof Error ? error.message : String(error)}`);
+    }
     const title = titleOf(parsed.data["title"], parsed.body, name);
     const order = typeof parsed.data["order"] === "number" ? parsed.data["order"] : 100;
     const stackId = layer === "stack" ? name.replace(/\.md$/, "") : undefined;
